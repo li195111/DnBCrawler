@@ -20,7 +20,7 @@ class CategoryPage(scrapy.Spider):
     def parse(self, response):
         # print('\n********** Second Status Info **********\n')
         if response.status == 200:
-            print(f"URL :\t\t{response.url} ... OK\n")
+            print(f"URL :\t\t{response.url} ... OK")
             load_region_info = response.css("h1.title::text")
             load_error = 'Oh no! 500 Error' in load_region_info.extract()
             if load_error:
@@ -39,7 +39,15 @@ class CategoryPage(scrapy.Spider):
 
 def run_dunbrad_spider(url, q):
     process = CrawlerProcess(
-        {'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36'})
+            {
+                'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+                'ROBOTSTXT_OBEY': False,
+                'DOWNLOAD_DELAY': 3,
+                'CONCURRENT_REQUESTS': 16,
+                'TELNETCONSOLE_PORT' : None,
+                'TELNETCONSOLE_ENABLED':False
+            }
+        )
     process.crawl(CategoryPage, start_urls= [url,], q= q)
     process.start()
     
@@ -92,7 +100,7 @@ if __name__ == "__main__":
     parsesed = 0
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
-    i = 32
+    i = 3
     file_name = f"Industry_{i}.json"
     file_path = os.path.join(INDUSTRY_DIR, file_name)
     industry_category_regoins = []
