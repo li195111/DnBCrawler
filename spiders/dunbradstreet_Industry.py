@@ -20,7 +20,7 @@ class IndustryPage(scrapy.Spider):
         print('\n********** Second Status Info **********\n')
         if response.status == 200:
             CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys_1")
+            INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
             if not os.path.exists(INDUSTRY_DIR):
                 os.mkdir(INDUSTRY_DIR)
             print(f"URL :\t\t{response.url} ... OK\n")
