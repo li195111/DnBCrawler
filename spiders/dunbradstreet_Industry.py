@@ -10,7 +10,7 @@ logging.getLogger('scrapy').propagate = False
 import json
 import os
 
-
+DNB_BASE = 'https://www.dnb.com'
 class IndustryPage(scrapy.Spider):
 
     name = "industry_spider"

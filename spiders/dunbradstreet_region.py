@@ -10,6 +10,8 @@ logging.getLogger('scrapy').propagate = False
 import json
 import os
 
+DNB_BASE = 'https://www.dnb.com'
+
 class CategoryPage(scrapy.Spider):
 
     name = "category_spider"
@@ -70,7 +72,7 @@ if __name__ == "__main__":
     CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
-    DNB_BASE = 'https://www.dnb.com'
+    
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
     limite = 50
