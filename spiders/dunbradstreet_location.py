@@ -16,6 +16,7 @@ class CategoryPage(scrapy.Spider):
     base_url = 'https://www.dnb.com'
     start_urls = []
     q = None
+    reg = ""
     loc = ""
     def parse(self, response):
         # print('\n********** Second Status Info **********\n')
@@ -34,9 +35,9 @@ class CategoryPage(scrapy.Spider):
                         location_towns[name] = url
                 else:
                     next_page = 1
-                    location_towns = response.url
+                    location_towns = response.url.replace(self.base_url,"")
             # print (f"Number of Region Locations: {len(region_locations)}")
-            out = {"result":next_page,"data":location_towns,"loc":self.loc}
+            out = {"result":next_page,"data":location_towns,"reg":self.reg,"loc":self.loc}
             # print (f"Load Error: {load_error}, {next_page}, {len(location_towns)}")
             self.q.put(out)
         else:
@@ -44,7 +45,7 @@ class CategoryPage(scrapy.Spider):
         # print('\n********** Second Status Info **********\n')
 
 
-def run_dunbrad_spider(locs, Q):
+def run_dunbrad_spider(region_datas, Q):
     process = CrawlerProcess(
             {
                 'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
@@ -55,9 +56,11 @@ def run_dunbrad_spider(locs, Q):
                 'TELNETCONSOLE_ENABLED':False
             }
         )
-    for loc in locs:
-        url = DNB_BASE + locs[loc]
-        process.crawl(CategoryPage, start_urls= [url,], q= Q, loc= loc)
+    for data_idx in range(len(region_datas)):
+        reg = region_datas[data_idx]["region"]
+        loc = region_datas[data_idx]["location"]
+        url = DNB_BASE + region_datas[data_idx]["url"]
+        process.crawl(CategoryPage, start_urls= [url,], q= Q, reg= reg, loc= loc)
     process.start()
     # process.stop()
     
@@ -72,7 +75,11 @@ if __name__ == "__main__":
     DNB_BASE = 'https://www.dnb.com'
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
-    i = 3
+    limite = 50
+    if len(sys.argv) > 1:
+        i = int(sys.argv[1])
+    else:
+        i = 2
     file_name = f"Industry_{i}.json"
     file_path = os.path.join(INDUSTRY_DIR, file_name)
     while True:
@@ -83,51 +90,48 @@ if __name__ == "__main__":
             num_category = len(industry_datas)
             for idx, data in enumerate(industry_datas):
                 category = data["Category"]
-                if ("Locations" in data) and ("Locations" in data):
-                    locations = data["Locations"]
+                if ("Locations" in data) and (len(data["Locations"]) != 0):
+                    RegionDatas = data["Locations"]
                     if not ("Towns" in data):
                         data["Towns"] = {}
-                    for reg_idx, reg in enumerate(locations):
+                    NewRegionDatas = []
+                    for reg in RegionDatas:
+                        if len(NewRegionDatas) >= limite:
+                            break
+                        for loc in RegionDatas[reg]:
+                            if len(NewRegionDatas) >= limite:
+                                break
+                            url = RegionDatas[reg][loc]
+                            if not reg in data["Towns"]:
+                                NewRegionDatas.append({"region":reg,"location":loc,"url":url})
+                            else:
+                                if not loc in data["Towns"][reg]:
+                                    NewRegionDatas.append({"region":reg,"location":loc,"url":url})
+                    num_add = len(NewRegionDatas)
+                    print (f"{category}\t... Number to add:\t{num_add}")
+                    Q = multiprocessing.Queue()
+                    P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewRegionDatas, Q))
+                    P.start()
+                    P.join(timeout= num_add if num_add > 10 else 10)
+                    log_items = [num_log_items]
+                    while not Q.empty():
+                        town_data = Q.get(timeout= 1)
+                        res = town_data["result"]
+                        towns = town_data["data"]
+                        reg = town_data["reg"]
+                        loc = town_data["loc"]
                         if not reg in data["Towns"]:
                             data["Towns"][reg] = {}
-                        locs = locations[reg]
-                        new_locs = {}
-                        for loc in locs:
-                            if len(new_locs) >= 20:
-                                break
-                            if not loc in data["Towns"][reg]:
-                                new_locs[loc] = locs[loc]
-                        num_add = len(new_locs)
-                        print (f"{reg}\t... Number to add:\t{num_add}")
-                        Q = multiprocessing.Queue()
-                        P = multiprocessing.Process(target= run_dunbrad_spider, args= (new_locs, Q))
-                        P.start()
-                        P.join(timeout= num_add)
-                        nQueue = 0
-                        while not Q.empty():
-                            town_data = Q.get(timeout= 1)
-                            res = town_data["result"]
-                            towns = town_data["data"]
-                            loc = town_data["loc"]
-                            if res == 0:
-                                if len(towns) > 0:
-                                    if loc:
-                                        data["Towns"][reg][loc] = towns
-                                    else:
-                                        data["Towns"][reg][nQueue] = towns
-                                        nQueue += 1
-                                    num_log_items = True
-                                print (reg, loc, len(towns))
-                            elif res == 1:
-                                if loc:
-                                    data["Towns"][reg][loc] = {loc:towns}
-                                else:
-                                    data["Towns"][reg][nQueue] = {nQueue:towns}
-                                    nQueue += 1
-                                num_log_items = True
-                                print (reg, loc, 1)
-                        if num_log_items:
-                            break
+                        if res == 0:
+                            if len(towns) > 0:
+                                data["Towns"][reg][loc] = towns
+                                log_items.append(True)
+                            print (reg, loc, len(towns))
+                        else:
+                            data["Towns"][reg][loc] = {loc:towns}
+                            log_items.append(True)
+                            print (reg, loc, 1)
+                    num_log_items = (np.array(log_items) == True).any()
                 indusrty_category_regions_locations.append(data)
         if num_log_items:
             with open(file_path, 'w', encoding= 'utf-8') as f:
