@@ -77,7 +77,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
-        i = 3
+        i = 2
     file_name = f"Industry_{i}.json"
     file_path = os.path.join(INDUSTRY_DIR, file_name)
     while True:

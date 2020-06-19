@@ -10,6 +10,7 @@ logging.getLogger('scrapy').propagate = False
 import json
 import os
 
+DNB_BASE = 'https://www.dnb.com'
 
 class CategoryPage(scrapy.Spider):
 
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
-    DNB_BASE = 'https://www.dnb.com'
+    
     all_parses = 0
     parsesed = 0
     num_industry = len(ALL_INDUSTRY)
@@ -107,7 +108,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
-        i = 5
+        i = 2
+    limite = 50
     file_name = f"Industry_{i}.json"
     file_path = os.path.join(INDUSTRY_DIR, file_name)
     while True:
@@ -119,6 +121,8 @@ if __name__ == "__main__":
             all_category_parses += num_category
             NewIndustryDatas = []
             for idx, data in enumerate(industry_datas):
+                if len(NewIndustryDatas) >= limite:
+                    break
                 if not ("Regions" in data) or not (len(data["Regions"]) != 0):
                     NewIndustryDatas.append({"ID":idx,"data":data})
             num_add = len(NewIndustryDatas)
