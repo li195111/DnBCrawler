@@ -17,6 +17,8 @@ INDUSTRYS = ["Manufacturing Sector", "Membership Organizations", "Mining", "Nonr
              "Natural Gas Distribution & Marketing","Nonprofit Institutions","Oil & Gas Exploration & Production","Oil & Gas Field Services","Oil & Gas Well Drilling",
              "Private Households","Restaurants, Bars & Food Services","Transportation Services Sector","Water & Sewer Utilities"]
 
+DNB_BASE = 'https://www.dnb.com'
+
 class IndustryPage(scrapy.Spider):
 
     name = "industry_spider"
