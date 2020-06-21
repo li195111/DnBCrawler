@@ -25,7 +25,7 @@ class CategoryPage(scrapy.Spider):
         if response.status == 200:
             print(f"URL :\t\t{response.url} ... OK !")
             load_region_info = response.css("h1.title::text")
-            load_error = 'Oh no! 500 Error' in load_region_info.extract()
+            load_error = 'Oh no! 500 Error' in load_region_info.extract() or 'Oh no! 404 Error' in load_region_info.extract()
             next_page = 0
             location_towns = {}
             if not load_error:
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
-    limite = 25
+    limite = 10
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
@@ -114,10 +114,10 @@ if __name__ == "__main__":
                     Q = multiprocessing.Queue()
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewRegionDatas, Q))
                     P.start()
-                    P.join(timeout= num_add if num_add > 10 else 10)
+                    P.join(timeout= num_add * 1.5 if num_add > 20 else 20)
                     log_items = [num_log_items]
                     while not Q.empty():
-                        town_data = Q.get(timeout= 1)
+                        town_data = Q.get(timeout= 5)
                         res = town_data["result"]
                         towns = town_data["data"]
                         reg = town_data["reg"]

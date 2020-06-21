@@ -9,8 +9,10 @@ logging.getLogger('scrapy').setLevel(logging.WARNING)
 logging.getLogger('scrapy').propagate = False
 import json
 import os
+from utils import GetItemID, SelectItems, INSERT
 
 DNB_BASE = 'https://www.dnb.com'
+DB_NAME = "test"
 
 class CategoryPage(scrapy.Spider):
 
@@ -50,10 +52,9 @@ def run_dunbrad_spider(industrys, q):
                 'TELNETCONSOLE_ENABLED':False
             }
         )
-    for industry in industrys:
-        idx = industry["ID"]
-        data = industry["data"]
-        url = DNB_BASE + data["CategoryURL"]
+    for data in industrys:
+        idx = data[0]
+        url = DNB_BASE + data[2]
         process.crawl(CategoryPage, start_urls= [url,], q= q, idx= idx)
     process.start()
     
@@ -104,49 +105,45 @@ if __name__ == "__main__":
     all_parses = 0
     parsesed = 0
     num_industry = len(ALL_INDUSTRY)
-    # for i in range(num_industry):
+
     limite = 10
-    if len(sys.argv) > 1:
-        i = int(sys.argv[1])
-    else:
-        i = 0
-    file_name = f"Industry_{i}.json"
-    file_path = os.path.join(INDUSTRY_DIR, file_name)
+    i = 2
     while True:
         all_category_parses = 0
         category_parsesed = 0
-        with open(file_path, 'r', encoding= 'utf-8') as f:
-            industry_datas = json.load(f)
-            num_category = len(industry_datas)
-            all_category_parses += num_category
-            NewIndustryDatas = []
-            for idx, data in enumerate(industry_datas):
-                if len(NewIndustryDatas) >= limite:
-                    break
-                if not ("Regions" in data) or not (len(data["Regions"]) != 0):
-                    NewIndustryDatas.append({"ID":idx,"data":data})
-            num_add = len(NewIndustryDatas)
-            category_parsesed = num_category - num_add
-            print (f"Industry {i}\t... Number to add:\t{num_add}")
-            Q = multiprocessing.Queue()
-            P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewIndustryDatas, Q))
-            P.start()
-            P.join(timeout= num_add if num_add > 10 else 10)
-            while not Q.empty():
-                region_datas = Q.get(timeout= 5)
-                idx = region_datas["idx"]
-                regions = region_datas["data"]
-                if len(regions) != 0:
-                    industry_datas[idx]["Regions"] = regions
-                else:
-                    category_parsesed -= 1
-            all_parses += all_category_parses
-            parsesed += category_parsesed
-        category_parse_rate = category_parsesed / all_category_parses
+        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+        num_category = len(category_datas)
+        all_category_parses += num_category
+        NewIndustryDatas = []
+        for idx, data in enumerate(category_datas):
+            CategoryID = data[0]
+            if len(NewIndustryDatas) >= limite:
+                break
+            region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
+            if (len(region_datas) == 0):
+                NewIndustryDatas.append(data)
+        num_add = len(NewIndustryDatas)
+        category_parsesed = num_category - num_add
+        print (f"Industry {i+1}\t... Number to add:\t{num_add}")
+        Q = multiprocessing.Queue()
+        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewIndustryDatas, Q))
+        P.start()
+        P.join(timeout= num_add if num_add > 10 else 10)
+        RegionData = []
+        while not Q.empty():
+            region_datas = Q.get(timeout= 5)
+            idx = region_datas["idx"]
+            regions = region_datas["data"]
+            if len(regions) != 0:
+                for name in regions:
+                    RegionData.append((name, regions[name], idx))
+            else:
+                category_parsesed -= 1
+        INSERT(DB_NAME, "Region", RegionData)
+        all_parses += all_category_parses
+        parsesed += category_parsesed
+        category_parse_rate = (category_parsesed + 1e-8) / (all_category_parses + 1e-8)
         print (f"Industry ... {specific_industry_names[i]:50s} ... Regions Parse Rate: {category_parse_rate * 100:.2f} %")
-        with open(file_path, 'w', encoding= 'utf-8') as f:
-            json.dump(industry_datas, f)
         if category_parse_rate == 1:
             break
-    # all_parses_rate = parsesed / all_parses
-    # print (f"Total Regions Parse Rate: {all_parses_rate * 100:.3f} %")

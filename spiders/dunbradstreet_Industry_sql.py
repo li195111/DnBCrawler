@@ -9,6 +9,8 @@ logging.getLogger('scrapy').setLevel(logging.WARNING)
 logging.getLogger('scrapy').propagate = False
 import json
 import os
+from module import Category, Industry
+from utils import INIT_DB, INSERT
 
 INDUSTRYS = ["Manufacturing Sector", "Membership Organizations", "Mining", "Nonresidential Building Construction", "Wholesale Sector", "Heavy & Civil Engineering Construction",
              "Lodging", "Residential Construction Contractors","Specialty Contractors","Agriculture & Forestry Sector","Professional Services Sector","Rental & Leasing",
@@ -17,6 +19,8 @@ INDUSTRYS = ["Manufacturing Sector", "Membership Organizations", "Mining", "Nonr
              "Natural Gas Distribution & Marketing","Nonprofit Institutions","Oil & Gas Exploration & Production","Oil & Gas Field Services","Oil & Gas Well Drilling",
              "Private Households","Restaurants, Bars & Food Services","Transportation Services Sector","Water & Sewer Utilities"]
 
+DB_NAME = "test"
+
 class IndustryPage(scrapy.Spider):
 
     name = "industry_spider"
@@ -24,7 +28,10 @@ class IndustryPage(scrapy.Spider):
     start_urls = ["https://www.dnb.com/business-directory.html", ]
     def parse(self, response):
         print('\n********** Second Status Info **********\n')
-        if response.status == 200:            
+        if response.status == 200:
+            
+            INIT_DB(DB_NAME)
+            
             CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
             if not os.path.exists(INDUSTRY_DIR):
@@ -34,6 +41,8 @@ class IndustryPage(scrapy.Spider):
             all_industry_names = np.array(all_industrys.css("div.title::text").extract())
             specific_industry_names = np.array(INDUSTRYS)
 
+            IndustryData = []
+            CategoryData = []
             for i in range(len(specific_industry_names)):
                 industry_datas = []
                 industry_mask = all_industry_names == specific_industry_names[i]
@@ -42,15 +51,12 @@ class IndustryPage(scrapy.Spider):
                     industry_name = industry.css("div.title::text").extract_first()
                     industry_category_names = industry.css("div.link").css("a::text").extract()
                     industry_category_urls = industry.css("div.link").css("a::attr('href')").extract()
+                    IndustryData.append((i+1, industry_name))
                     for idx, category in enumerate(industry_category_names):
-                        industry_datas.append({"Industry": industry_name,
-                                               "Category": category,
-                                               "CategoryURL": industry_category_urls[idx]})
-                FILE_PATH = os.path.join(INDUSTRY_DIR,f"Industry_{i}.json")
-                if not os.path.exists(FILE_PATH):
-                    print (f"Log to ... {FILE_PATH} ... {specific_industry_names[i]} ... Number of Category {idx+1}")
-                    with open(FILE_PATH, 'w', encoding= 'utf-8') as f:
-                        json.dump(industry_datas,f)
+                        CategoryData.append((category, industry_category_urls[idx], i+1))
+            INSERT(DB_NAME, "Industry", IndustryData)
+            INSERT(DB_NAME, "Category", CategoryData)
+
         print('\n********** Second Status Info **********\n')
 
 def run_dunbrad_spider():

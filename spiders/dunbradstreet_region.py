@@ -10,6 +10,7 @@ logging.getLogger('scrapy').propagate = False
 import json
 import os
 
+DNB_BASE = 'https://www.dnb.com'
 class CategoryPage(scrapy.Spider):
 
     name = "category_spider"
@@ -70,14 +71,14 @@ if __name__ == "__main__":
     CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
-    DNB_BASE = 'https://www.dnb.com'
+    
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
-    limite = 50
+    limite = 10
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
-        i = 2
+        i = 0
     file_name = f"Industry_{i}.json"
     file_path = os.path.join(INDUSTRY_DIR, file_name)
     while True:
@@ -107,7 +108,7 @@ if __name__ == "__main__":
                     P.join(timeout= num_add if num_add > 10 else 10)
                     log_items = [num_log_items]
                     while not Q.empty():
-                        loc_data = Q.get(timeout= 1)
+                        loc_data = Q.get(timeout= 5)
                         res = loc_data["result"]
                         reg = loc_data["region"]
                         loc = loc_data["data"]
