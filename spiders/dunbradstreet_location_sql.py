@@ -11,7 +11,7 @@ import json
 import os
 import time 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import GetItemID, SelectItems, INSERT
+from utils import GetItemID, SelectItems, INSERT, INIT_DB
 
 DNB_BASE = 'https://www.dnb.com'
 DB_NAME = "test"
@@ -83,13 +83,13 @@ if __name__ == "__main__":
     CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
-    
+    INIT_DB(DB_NAME)
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
-        i = 3
+        i = 0
     if len(sys.argv) > 2:
         limite = int(sys.argv[2])
     else:
@@ -104,22 +104,16 @@ if __name__ == "__main__":
             CategoryID = category_data[0]
             if len(NewTownDatas) >= limite:
                 break
-            region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
-            num_reg_datas = len(region_datas)
-            for reg_idx, region_data in enumerate(region_datas):
-                RegionID = region_data[0]
+            location_datas = SelectItems(DB_NAME, "Location", "CategoryID,", [CategoryID,])
+            num_loc_datas = len(location_datas)
+            for loc_idx, location_data in enumerate(location_datas):
+                LocationID = location_data[0]
                 if len(NewTownDatas) >= limite:
                     break
-                location_datas = SelectItems(DB_NAME, "Location", "CategoryID, RegionID", [CategoryID, RegionID])
-                num_loc_datas = len(location_datas)
-                for loc_idx, location_data in enumerate(location_datas):
-                    LocationID = location_data[0]
-                    if len(NewTownDatas) >= limite:
-                        break
-                    town_datas = SelectItems(DB_NAME, "Town", "CategoryID, LocationID", [CategoryID, LocationID])
-                    if (len(town_datas) == 0):
-                        location_name = location_data[1]
-                        NewTownDatas.append([CategoryID, location_data])
+                town_datas = SelectItems(DB_NAME, "Town", "CategoryID, LocationID", [CategoryID, LocationID])
+                if (len(town_datas) == 0):
+                    location_name = location_data[1]
+                    NewTownDatas.append([CategoryID, location_data])
         num_add = len(NewTownDatas)
         print (f"Industry {i+1:02d} {location_name} ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
@@ -143,7 +137,7 @@ if __name__ == "__main__":
             elif res == 1:
                 url = town
                 TownData.append((locationName, url, categoryID, locationID))
-        num_insert = INSERT(DB_NAME, "Town", TownData)
-        print (f"Industry {i+1:02d} Location ... Num insert\t{num_insert}")
-        if num_insert == 0 and res == 0:
+        print (f"Industry {i+1:02d} Town ... Num insert\t{len(TownData)}")
+        INSERT(DB_NAME, "Town", TownData)
+        if num_add == 0 and res == 0:
             break

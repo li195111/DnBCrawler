@@ -10,7 +10,7 @@ logging.getLogger('scrapy').propagate = False
 import json
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import GetItemID, SelectItems, INSERT
+from utils import GetItemID, SelectItems, INSERT, INIT_DB
 
 DNB_BASE = 'https://www.dnb.com'
 DB_NAME = "test"
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     CUR_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
-    
+    INIT_DB(DB_NAME)
     num_industry = len(ALL_INDUSTRY)
     # for i in range(num_industry):
     if len(sys.argv) > 1:
@@ -138,8 +138,7 @@ if __name__ == "__main__":
             elif res == 1:
                 url = loc
                 LocationData.append((regionName, url, categoryID, regionID))
-        num_insert = INSERT(DB_NAME, "Location", LocationData)
-        print (f"Industry {i+1:02d} Location ... Num insert\t{num_insert}")
-        
-        if num_insert == 0 and res == 0:
+        print (f"Industry {i+1:02d} Location ... Num insert\t{len(LocationData)}")
+        INSERT(DB_NAME, "Location", LocationData)        
+        if num_add == 0 and res == 0:
             break

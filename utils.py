@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS %s (
     URL VARCHAR(2083) NOT NULL,
     CategoryID INTEGER NOT NULL,
     TownID INTEGER NOT NULL,
+    PageID INTEGER NOT NULL,
     ShortName VARCHAR(100),
     SalesRevenue VARCHAR(100),
     CompanyType VARCHAR(100),
@@ -108,7 +109,8 @@ def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     )
     cursor = connect.cursor()
     cursor.execute("SHOW DATABASES")
-    return ((DB_NAME,) in cursor)
+    CHECK = ((DB_NAME,) in cursor)
+    cursor.close()
 
 def DROP_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
@@ -153,19 +155,22 @@ def INSERT(DB_NAME:str, TB_NAME:str, INSERT_VAL:list, host= 'localhost', user= '
         MATCH_ITEMS = ["%s"] * num_items
     SELECT_MATCHES = " AND".join([ITEMS.split(",")[i] + " = " + MATCH_ITEMS[i] for i in range(num_items)])
     INSERT_MATCHES = ",".join(MATCH_ITEMS)
-    SELECT_SQL = f"SELECT * FROM {TB_NAME} WHERE {SELECT_MATCHES}"
-    INSERT_SQL = f"INSERT INTO {TB_NAME} ({ITEMS}) VALUES ({INSERT_MATCHES})"
-    VALUES = []
-    for VALUE in INSERT_VAL:
-        cursor.execute(SELECT_SQL, VALUE)
-        result = cursor.fetchall()
-        if len(result) == 0:
-            VALUES.append(VALUE)
-    # print (f"{TB_NAME} ... Number Insert {len(VALUES)}")
-    cursor.executemany(INSERT_SQL, VALUES)
-    connect.commit()
+    INSERT_SQL = f'''INSERT INTO {TB_NAME} ({ITEMS}) VALUE ({INSERT_MATCHES})'''
+    SELECT_SQL = f'''
+    SELECT * FROM 
+        (SELECT {INSERT_MATCHES}) AS tmp 
+    WHERE EXISTS 
+        (SELECT * FROM {TB_NAME} WHERE {SELECT_MATCHES})'''
+    INSERT_VAL = [tuple(VAL) for VAL in INSERT_VAL]
+    try:
+        cursor.executemany(INSERT_SQL, INSERT_VAL)
+    except Exception as e:
+        print (f"Error :\t{e}")
+    try:
+        connect.commit()
+    except Exception as e:
+        print (f"Error :\t{e}")
     cursor.close()
-    return len(VALUES)
     
 def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
@@ -188,7 +193,7 @@ def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', pa
     result = cursor.fetchall()
     cursor.close()
     if len(result) != 1:
-        raise ValueError(f"{result}")
+        raise result
     return result[0][0]
 
 def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
@@ -232,63 +237,66 @@ def DeleteItem(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'local
     DELETE_SQL = f"DELETE FROM {TB_NAME} where {SELECT_MATCHES}"
     cursor.execute(DELETE_SQL)
     connect.commit()
+    cursor.close()
 
-def json2sql(i= 0, jsonDir= 'Industrys', DB_NAME= 'test', host= 'localhost', user= 'root', password= 'Aboutx_121'):
+def json2sql(mode= None,jsonDir= 'Industrys', DB_NAME= 'test', host= 'localhost', user= 'root', password= 'Aboutx_121'):
     INIT_DB(DB_NAME)
     CUR_PATH = os.path.dirname(os.path.abspath(__file__))
     INDUSTRY_DIR = os.path.join(CUR_PATH, jsonDir)
     INDUSTRY_NAMES = os.listdir(INDUSTRY_DIR)
     INDUSTRY_NAMES.sort()
     INDUSTRY_PATHS = [os.path.join(INDUSTRY_DIR, name) for name in INDUSTRY_NAMES]
-    file_name = f"Industry_{i}.json"
-    file_path = os.path.join(INDUSTRY_DIR, file_name)
-    with open(file_path, 'r', encoding= 'utf-8') as f:
-        industry_datas = json.load(f)
-        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
-        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
-        numCategorys = len(industry_datas)
-        for idx, industry_data in enumerate(industry_datas):
-            CategoryID = GetItemID(DB_NAME, "Category", [industry_data["Category"], IndustryID])
-            region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
-            # if "Regions" in industry_data:
-            #     RegionData = []
-            #     for reg_name in industry_data["Regions"]:
-            #         url = industry_data["Regions"][reg_name]
-            #         reg_data = (reg_name, url, CategoryID)
-            #         in_region_database = np.sum(np.sum(np.array(region_datas)[:,1:] == reg_data,1) == 3) > 0
-            #         if not in_region_database:
-            #             RegionData.append(reg_data)
-            #     num_insert = INSERT(DB_NAME, "Region", RegionData)
-            #     print (f"Industry {i+1:02d} Region ... Number Insert {num_insert:05d} ... {(idx+1) * 100 / numCategorys:.2f} %", end= '\r')
-            if ("Locations" in industry_data):
-                num_reg_datas = len(industry_data["Locations"])
-                for reg_idx, reg_name in enumerate(industry_data["Locations"]):
-                    LocationData = []
-                    RegionID = GetItemID(DB_NAME, "Region", [reg_name, CategoryID])
-                    location_datas = SelectItems(DB_NAME, "Location", "RegionID,", [RegionID,])
-                    num_reg_loc_datas = len(industry_data["Locations"][reg_name])
-                    loc_name = np.array(list(industry_data["Locations"][reg_name].keys()))
-                    loc_urls = np.array(list(industry_data["Locations"][reg_name].values()))
-                    loc_datas = np.stack([loc_name,loc_urls,np.full_like(loc_name,CategoryID),np.full_like(loc_name,RegionID)],-1)
-                    if len(location_datas) > 0:
-                        for loc_idx, loc_data in enumerate(loc_datas):
-                            if not loc_data in np.array(location_datas)[:,1:]:
-                                LocationData.append(tuple(loc_data))
-                    else:
-                        LocationData = loc_datas
-                    LocationData = [tuple(loc_data) for loc_data in LocationData]
-                    print (f"Industry {i+1:02d} Location ... Num insert {len(LocationData):05d} ... {(idx+1) * 100 / numCategorys:03.2f} % {(reg_idx+1) * 100 / num_reg_datas:03.2f} %", end= '\r')
-                    um_insert = INSERT(DB_NAME, "Location", LocationData)
-            # if ("Town" in industry_data):
-            #     TownData = []
-            #     for reg_name in industry_data["Town"]:
-            #         for loc_name in industry_data["Town"][reg_name]:
-            #             LocationID = GetItemID(DB_NAME, "Location", [loc_name, CategoryID, RegionID])
-
-            #             for town_name in industry_data["Town"][reg_name][loc_name]:
-            #                 town_url = industry_data["Town"][reg_name][loc_name][town_name]
-            #                 TownData.append((town_name, town_url, CategoryID, LocationID))
-            #     INSERT(DB_NAME, "Town", TownData)
+    for i in range(len(INDUSTRY_NAMES)):
+        file_name = f"Industry_{i}.json"
+        file_path = os.path.join(INDUSTRY_DIR, file_name)
+        with open(file_path, 'r', encoding= 'utf-8') as f:
+            industry_datas = json.load(f)
+            IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+            category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+            numCategorys = len(industry_datas)
+            for idx, industry_data in enumerate(industry_datas):
+                CategoryID = GetItemID(DB_NAME, "Category", [industry_data["Category"], IndustryID])
+                region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
+                if mode == "region":
+                    if "Regions" in industry_data:
+                        RegionData = []
+                        for reg_name in industry_data["Regions"]:
+                            url = industry_data["Regions"][reg_name]
+                            reg_data = (reg_name, url, CategoryID)
+                            in_region_database = np.sum(np.sum(np.array(region_datas)[:,1:] == reg_data,1) == 3) > 0
+                            if not in_region_database:
+                                RegionData.append(reg_data)
+                        INSERT(DB_NAME, "Region", RegionData)
+                        print (f"Industry {i+1:02d} Region ... Number Insert {num_insert:05d} ... {(idx+1) * 100 / numCategorys:.2f} %", end= '\r')
+                elif mode == "location":
+                    if ("Locations" in industry_data):
+                        num_reg_datas = len(industry_data["Locations"])
+                        for reg_idx, reg_name in enumerate(industry_data["Locations"]):
+                            LocationData = []
+                            RegionID = GetItemID(DB_NAME, "Region", [reg_name, CategoryID])
+                            num_reg_loc_datas = len(industry_data["Locations"][reg_name])
+                            loc_name = np.array(list(industry_data["Locations"][reg_name].keys()))
+                            loc_urls = np.array(list(industry_data["Locations"][reg_name].values()))
+                            LocationData = np.stack([loc_name,loc_urls,np.full_like(loc_name,CategoryID),np.full_like(loc_name,RegionID)],-1)
+                            print (f"Industry {i+1:02d} Location ... Num insert {len(LocationData):05d} ... {(idx+1) * 100 / numCategorys:03.2f} % {(reg_idx+1) * 100 / num_reg_datas:03.2f} %", end= '\r')
+                            INSERT(DB_NAME, "Location", LocationData)
+                elif mode == "town":
+                    if ("Towns" in industry_data):
+                        num_reg_datas = len(industry_data["Towns"])
+                        for reg_idx, reg_name in enumerate(industry_data["Towns"]):
+                            RegionID = GetItemID(DB_NAME, "Region", [reg_name, CategoryID])
+                            num_loc_datas = len(industry_data["Towns"][reg_name])
+                            TownDatas = []
+                            for loc_name in industry_data["Towns"][reg_name]:
+                                LocationID = GetItemID(DB_NAME, "Location", [loc_name, CategoryID, RegionID])
+                                if LocationID:
+                                    town_name = np.array(list(industry_data["Towns"][reg_name][loc_name].keys()))
+                                    town_urls = np.array(list(industry_data["Towns"][reg_name][loc_name].values()))
+                                    TownData = np.stack([town_name,town_urls,np.full_like(town_name,CategoryID),np.full_like(town_name,LocationID)],-1)
+                                    TownDatas.append(TownData)
+                            TownDatas = np.concatenate(TownDatas,0)
+                            print (f"Industry {i+1:02d} Town ... Num insert {len(TownDatas):05d} ... {(idx+1) * 100 / numCategorys:03.2f} % {(reg_idx+1) * 100 / num_reg_datas:03.2f} %", end= '\r')
+                            INSERT(DB_NAME, "Town", TownDatas)
     return
     
 if __name__ == "__main__":
@@ -296,8 +304,12 @@ if __name__ == "__main__":
         i = int(sys.argv[1])
     else:
         i = 0
-    json2sql(i)
-    
+    # if i == 0:
+    #     json2sql('region')
+    # elif i == 1:
+    #     json2sql('location')
+    # elif i == 2:
+    #     json2sql('town')
     # DB_NAME= 'test'
     # host= 'localhost'
     # user= 'root'
@@ -309,7 +321,7 @@ if __name__ == "__main__":
     #     database= DB_NAME
     # )
     # cursor = connect.cursor()
-    # SQL = "DELETE FROM test.location where RegionID = 13391"
+    # SQL = "DELETE FROM location where CategoryID >= 152 and CategoryID <= 157"
     # cursor.execute(SQL)
     # connect.commit()
     pass

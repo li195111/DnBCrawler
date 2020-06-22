@@ -83,8 +83,8 @@ def run_dunbrad_spider(town_datas, Q):
         )
     for data in town_datas:
         categoryID = data[0]
-        townID = data[1][0]
-        townName = data[1][1]
+        pageID = data[1][0]
+        townID = data[1][-1]
         url = DNB_BASE + data[1][2]
         process.crawl(CategoryPage, start_urls= [url,], q= Q, CategoryID= categoryID, TownID= townID, TownName= townName)
     process.start()
@@ -119,16 +119,17 @@ if __name__ == "__main__":
             CategoryID = category_data[0]
             if len(NewPageDatas) >= limite:
                 break
-            town_datas = SelectItems(DB_NAME, "Town", "CategoryID,", [CategoryID,])
-            num_town_datas = len(town_datas)
-            for town_idx, town_data in enumerate(town_datas):
-                TownID = town_data[0]
+            page_datas = SelectItems(DB_NAME, "Page", "CategoryID,", [CategoryID,])
+            num_page_datas = len(page_datas)
+            for page_idx, page_data in enumerate(page_datas):
+                PageID = page_data[0]
+                TownID = page_data[-1]
                 if len(NewPageDatas) >= limite:
                     break
-                page_datas = SelectItems(DB_NAME, "Page", "CategoryID, TownID", [CategoryID, TownID])
-                if (len(page_datas) == 0):
-                    town_name = town_data[1]
-                    NewPageDatas.append([CategoryID, town_data])
+                company_datas = SelectItems(DB_NAME, "Company", "CategoryID, TownID, PageID", [CategoryID, TownID, PageID])
+                if (len(company_datas) == 0):
+                    town_name = page_data[1]
+                    NewPageDatas.append([CategoryID, page_data])
         num_add = len(NewPageDatas)
         print (f"Industry {i+1:02d} {location_name} ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
