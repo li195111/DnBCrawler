@@ -48,7 +48,7 @@ class RegionPage(scrapy.Spider):
                     region_locations = response.url.replace(self.base_url,"")
             else:
                 next_page = -1
-                print (f"Error {response.url}")
+                print (f"Error {self.start_urls[0]}")
             out = {"result":next_page,"data":region_locations,"category":self.CategoryID,"region":self.RegionID, "region_name":self.RegionName}
             self.q.put(out)
         else:
@@ -74,7 +74,7 @@ def run_dunbrad_spider(regions, Q):
         url = DNB_BASE + data[1][2]
         process.crawl(RegionPage, start_urls= [url,], q= Q, CategoryID= categoryID, RegionID= regionID, RegionName= regionName)
     process.start()
-    # process.stop()
+    process.stop()
     
 def Hello(url, q):
     print (f"Hello ... ")

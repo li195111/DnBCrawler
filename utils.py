@@ -5,6 +5,7 @@ import json
 import numpy as np 
 import sqlite3
 import mysql.connector
+import pymysql
 
 Industry_TABLE_SYNTAX ='''
 CREATE TABLE IF NOT EXISTS %s (
@@ -43,44 +44,55 @@ CREATE TABLE IF NOT EXISTS %s (
     URL VARCHAR(2083) NOT NULL,
     CategoryID INTEGER NOT NULL,
     TownID INTEGER NOT NULL);'''
+PageCompany_TABLE_SYNTAX ='''
+CREATE TABLE IF NOT EXISTS %s (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(1024) NOT NULL,
+    URL VARCHAR(2083) NOT NULL,
+    SalesRevenue VARCHAR(100),
+    CategoryID INTEGER NOT NULL,
+    TownID INTEGER NOT NULL,
+    PageID INTEGER NOT NULL);'''
 Company_TABLE_SYNTAX ='''
 CREATE TABLE IF NOT EXISTS %s (
     ID INT AUTO_INCREMENT PRIMARY KEY,
-    Name VARCHAR(100) NOT NULL,
-    URL VARCHAR(2083) NOT NULL,
+    Name VARCHAR(1024) NOT NULL,
     CategoryID INTEGER NOT NULL,
     TownID INTEGER NOT NULL,
-    PageID INTEGER NOT NULL,
+    PageCompanyID INTEGER NOT NULL,
     ShortName VARCHAR(100),
     SalesRevenue VARCHAR(100),
     CompanyType VARCHAR(100),
     Website VARCHAR(100),
-    Address VARCHAR(100),
+    Address VARCHAR(2083),
     Phone VARCHAR(100));'''
     
-TB_SYNTAXS = [Industry_TABLE_SYNTAX, Category_TABLE_SYNTAX, Region_TABLE_SYNTAX, Location_TABLE_SYNTAX, Town_TABLE_SYNTAX, Page_TABLE_SYNTAX, Company_TABLE_SYNTAX]
-TB_NAMES = ["Industry", "Category", "Region", "Location", "Town", "Page", "Company"]
-INSERT_TB_ITEMS = {"Industry":  "ID, Name",
-                   "Category":  "Name, URL, IndustryID",
-                   "Region":    "Name, URL, CategoryID",
-                   "Location":  "Name, URL, CategoryID, RegionID",
-                   "Town":      "Name, URL, CategoryID, LocationID",
-                   "Page":      "PageNumb, URL, CategoryID, TownID",
-                   "Company":   "Name, URL, CategoryID, TownID, ShortName, SalesRevenue, CompanyType, Website, Address, Phone"}
+TB_SYNTAXS = [Industry_TABLE_SYNTAX, Category_TABLE_SYNTAX, Region_TABLE_SYNTAX, Location_TABLE_SYNTAX, Town_TABLE_SYNTAX, Page_TABLE_SYNTAX, PageCompany_TABLE_SYNTAX, Company_TABLE_SYNTAX]
+TB_NAMES = ["Industry", "Category", "Region", "Location", "Town", "Page", "PageCompany", "Company"]
+INSERT_TB_ITEMS = {"Industry":   "ID, Name",
+                   "Category":   "Name, URL, IndustryID",
+                   "Region":     "Name, URL, CategoryID",
+                   "Location":   "Name, URL, CategoryID, RegionID",
+                   "Town":       "Name, URL, CategoryID, LocationID",
+                   "Page":       "PageNumb, URL, CategoryID, TownID",
+                   "PageCompany":"Name, URL, SalesRevenue, CategoryID, TownID, PageID",
+                   "Company":    "Name, CategoryID, TownID, PageCompanyID, ShortName, SalesRevenue, CompanyType, Website, Address, Phone"}
 GET_ITEMS = {"Industry":    "ID,",
              "Category":    "Name, IndustryID",
              "Region":      "Name, CategoryID",
              "Location":    "Name, CategoryID, RegionID",
              "Town":        "Name, CategoryID, LocationID",
              "Page":        "PageNumb, CategoryID, TownID",
-             "Company":     "Name, CategoryID, TownID"}
-ITEM_IDS = {"Industry": np.array([0,]),
-             "Category":np.array([0,2]),
-             "Region":  np.array([0,2]),
-             "Location":np.array([0,2,3]),
-             "Town":    np.array([0,2,3]),
-             "Page":    np.array([0,2,3]),
-             "Company": np.array([0,2,3]),}
+             "PageCompany": "Name, CategoryID, TownID, PageID",
+             "Company":     "Name, CategoryID, TownID, PageCompanyID"}
+ITEM_IDS = {"Industry":     np.array([0,]),
+             "Category":    np.array([0,2]),
+             "Region":      np.array([0,2]),
+             "Location":    np.array([0,2,3]),
+             "Town":        np.array([0,2,3]),
+             "Page":        np.array([0,2,3]),
+             "PageCompany": np.array([0,3,4,5]),
+             "Company":     np.array([0,2,3,4]),}
 
 def CONNECT_DB_CURSOR(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
@@ -100,6 +112,7 @@ def CREATE_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     cursor = connect.cursor()
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
     cursor.close()
+    connect.close()
 
 def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
@@ -111,6 +124,7 @@ def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     cursor.execute("SHOW DATABASES")
     CHECK = ((DB_NAME,) in cursor)
     cursor.close()
+    connect.close()
 
 def DROP_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
@@ -121,7 +135,8 @@ def DROP_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     cursor = connect.cursor()
     cursor.execute(f"DROP DATABASE IF EXISTS {DB_NAME}")
     cursor.close()
-    
+    connect.close()
+
 def CREATE_TB(TB_NAME, TB_SYNTAX, DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
         host= host,
@@ -132,7 +147,8 @@ def CREATE_TB(TB_NAME, TB_SYNTAX, DB_NAME, host= 'localhost', user= 'root', pass
     cursor = connect.cursor()
     cursor.execute(TB_SYNTAX % TB_NAME)
     cursor.close()
-        
+    connect.close()
+
 def INIT_DB(DB_NAME= "test"):
     CREATE_DB(DB_NAME)
     for i in range(len(TB_NAMES)):
@@ -166,12 +182,15 @@ def INSERT(DB_NAME:str, TB_NAME:str, INSERT_VAL:list, host= 'localhost', user= '
         cursor.executemany(INSERT_SQL, INSERT_VAL)
     except Exception as e:
         print (f"Error :\t{e}")
+        print (INSERT_SQL)
+        print (INSERT_VAL)
     try:
         connect.commit()
     except Exception as e:
         print (f"Error :\t{e}")
     cursor.close()
-    
+    connect.close()
+
 def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect = mysql.connector.connect(
         host= host,
@@ -192,17 +211,25 @@ def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', pa
     cursor.execute(SELECT_SQL, SELECT_VAL)
     result = cursor.fetchall()
     cursor.close()
+    connect.close()
     if len(result) != 1:
         raise result
     return result[0][0]
 
 def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
+    connect = pymysql.connect(
         host= host,
         user= user,
         password= password,
-        database= DB_NAME
-    )
+        database= DB_NAME,
+        port= 3306)
+    # connect = mysql.connector.connect(
+    #         host= host,
+    #         user= user,
+    #         password= password,
+    #         database= DB_NAME,
+    #         port= 3306
+    # )
     cursor = connect.cursor()
     num_items = len([item for item in SELECT_ITEMS.split(",") if len(item) != 0])
     if num_items == 1:
@@ -216,6 +243,7 @@ def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'loca
     cursor.execute(SELECT_SQL, tuple(ITEM_VALUES))
     result = cursor.fetchall()
     cursor.close()
+    connect.close()
     return result
 
 def DeleteItem(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
@@ -238,6 +266,7 @@ def DeleteItem(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'local
     cursor.execute(DELETE_SQL)
     connect.commit()
     cursor.close()
+    connect.close()
 
 def json2sql(mode= None,jsonDir= 'Industrys', DB_NAME= 'test', host= 'localhost', user= 'root', password= 'Aboutx_121'):
     INIT_DB(DB_NAME)

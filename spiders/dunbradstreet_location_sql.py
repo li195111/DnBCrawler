@@ -45,7 +45,7 @@ class LocationPage(scrapy.Spider):
                     location_towns = response.url.replace(self.base_url,"")
             else:
                 next_page = -1
-                print (f"Error {response.url}")
+                print (f"Error {self.start_urls[0]}")
             # print (f"Number of Region Locations: {len(region_locations)}")
             out = {"result":next_page,"data":location_towns,"category":self.CategoryID,"location":self.LocationID,"location_name":self.LocationName}
             # print (f"Load Error: {load_error}, {next_page}, {len(location_towns)}")
@@ -73,7 +73,7 @@ def run_dunbrad_spider(location_datas, Q):
         url = DNB_BASE + data[1][2]
         process.crawl(LocationPage, start_urls= [url,], q= Q, CategoryID= categoryID, LocationID= locationID, LocationName= locationName)
     process.start()
-    # process.stop()
+    process.stop()
     
 def Hello(url, q):
     print (f"Hello ... {url}")
@@ -117,9 +117,13 @@ if __name__ == "__main__":
         num_add = len(NewTownDatas)
         print (f"Industry {i+1:02d} {location_name} ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
-        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewTownDatas, Q))
-        P.start()
-        P.join(timeout= num_add if num_add > 10 else 10)
+        jobs = []
+        for data in NewTownDatas:
+            P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
+            P.start()
+            jobs.append(P)
+        for P in jobs:
+            P.join(timeout= num_add * 2 if num_add > 10 else 20)
         TownData = []
         res = -1
         while not Q.empty():
@@ -137,6 +141,8 @@ if __name__ == "__main__":
             elif res == 1:
                 url = town
                 TownData.append((locationName, url, categoryID, locationID))
+        if len(TownData) == 0:
+            limite += 1
         print (f"Industry {i+1:02d} Town ... Num insert\t{len(TownData)}")
         INSERT(DB_NAME, "Town", TownData)
         if num_add == 0 and res == 0:

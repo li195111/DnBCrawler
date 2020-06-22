@@ -53,7 +53,7 @@ class CategoryPage(scrapy.Spider):
                 pass
             else:
                 next_page = -1
-                print (f"Error {response.url}")
+                print (f"Error {self.start_urls[0]}")
             out = {"result":next_page,"data":town_pages,"category":self.CategoryID,"town":self.TownID,"town_name":self.TownName}
             self.q.put(out)
         else:
@@ -88,7 +88,7 @@ def run_dunbrad_spider(town_datas, Q):
         url = DNB_BASE + data[1][2]
         process.crawl(CategoryPage, start_urls= [url,], q= Q, CategoryID= categoryID, TownID= townID, TownName= townName)
     process.start()
-    # process.stop()
+    process.stop()
     
 def Hello(url, q):
     print (f"Hello ... {url}")
@@ -103,11 +103,11 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
-        i = 3
+        i = 2
     if len(sys.argv) > 2:
         limite = int(sys.argv[2])
     else:
-        limite = 1
+        limite = 10
     # for i in range(num_industry):
     while True:
         IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
@@ -127,14 +127,17 @@ if __name__ == "__main__":
                     break
                 page_datas = SelectItems(DB_NAME, "Page", "CategoryID, TownID", [CategoryID, TownID])
                 if (len(page_datas) == 0):
-                    town_name = town_data[1]
                     NewPageDatas.append([CategoryID, town_data])
         num_add = len(NewPageDatas)
         print (f"Industry {i+1:02d} {location_name} ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
-        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewPageDatas, Q))
-        P.start()
-        P.join(timeout= num_add if num_add > 10 else 10)
+        jobs = []
+        for data in NewPageDatas:
+            P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
+            P.start()
+            jobs.append(P)
+        for P in jobs:
+            P.join(timeout= num_add * 2 if num_add > 10 else 20)
         PageData = []
         res = -1
         while not Q.empty():
@@ -152,6 +155,8 @@ if __name__ == "__main__":
             elif res == 1:
                 url = town
                 PageData.append((townName, url, categoryID, townID))
+        if len(PageData) == 0:
+            limite += 1
         print (f"Industry {i+1:02d} Page ... Num insert\t{len(PageData)}")
         INSERT(DB_NAME, "Page", PageData)
         if num_add == 0:

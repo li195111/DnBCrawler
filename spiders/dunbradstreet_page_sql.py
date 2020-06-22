@@ -24,40 +24,27 @@ class CategoryPage(scrapy.Spider):
     q = None
     CategoryID = None
     TownID = None
-    PageCompanyID = None
-    SalesRevenue = None
+    PageID = None
+    PageCompanys = {}
     def parse(self, response):
         # print('\n********** Second Status Info **********\n')
         if response.status == 200:
             print(f"URL :\t\t{response.url} ... OK !")
             load_region_info = response.css("h1.title::text")
-            company_info = response.xpath("//div[@class='tile hero']").css("div.col-md-12")
+            total_companys = response.xpath("//div[@id='companyResults']").css("div.data")
             load_error = ('Oh no! 500 Error' in load_region_info.extract() or 'Oh no! 404 Error' in load_region_info.extract())
             result = 0
-            Company = {}
-            if not load_error and (len(self.start_urls[0]) == len(response.url)):
-                Name = company_info.css("h1.title::text").extract_first()
-                tradeName = company_info.css("div.tradeName::text").extract_first()
-                Address = [add.strip() for add in company_info.css("div.company_street_address").css("::text").extract() if len(add.strip()) != 0]
-                Location = [loc.strip() for loc in company_info.css("div.company_regional_address").css("::text").extract() if len(loc.strip()) != 0]
-                ComType = company_info.css("div.type-role").css("span.type::text").extract_first()
-                ComType = ComType if not ComType is None else '-'
-                ComRole = company_info.css("div.type-role").css("span.role::text").extract_first()
-                ComRole = ComRole if not ComRole is None else '-'
-                Website = company_info.css("div.web").css("a::attr('href')").extract_first()
-                Phone = [phone.strip() for phone in company_info.css("div.phone::text").extract()]
-
-                Company["Name"] = Name if not Name is None else '-'
-                Company["Trade"] = tradeName if not tradeName is None else '-'
-                Company["Address"] = ''.join(Address) if not len(Address) == 0 else '-'
-                Company["Location"] = ''.join(Location) if not len(Location) == 0 else '-'
-                Company["CompanyType"] = ComType + ComRole
-                Company["WebSite"] = Website if not Website is None else '-'
-                Company["Phone"] = Phone[0] if len(Phone) > 0 else '-'
+            if not load_error and (self.start_urls[0] == response.url):
+                for company in total_companys:
+                    name = company.css("div.col-md-6").css("a::text").extract_first().strip()
+                    url = company.css("div.col-md-6").css("a::attr('href')").extract_first()
+                    salesRevenue = ''.join([sale.strip() for sale in company.css("div.col-md-2::text").extract() if len(sale.strip()) != 0])
+                    salesRevenue = salesRevenue if len(salesRevenue) > 0 else '-'
+                    self.PageCompanys[name] = {"URL":url,"Sales":salesRevenue}
             else:
                 result = -1
                 print (f"Error {self.start_urls[0]}")
-            out = {"result":result,"data":Company,"category":self.CategoryID,"town":self.TownID,"pagecompany":self.PageCompanyID,"sales":self.SalesRevenue}
+            out = {"result":result,"data":self.PageCompanys,"category":self.CategoryID,"town":self.TownID,"page":self.PageID}
             self.q.put(out)
         else:
             print(f"URL :\t\t{response.url} ... Error Code: {response.status}\n")
@@ -85,11 +72,10 @@ def run_dunbrad_spider(town_datas, Q):
         )
     for data in town_datas:
         categoryID = data[0]
-        pagecompanyID = data[1][0]
-        townID = data[1][-2]
-        salesRevenue = data[1][-4]
+        pageID = data[1][0]
+        townID = data[1][-1]
         url = DNB_BASE + data[1][2]
-        process.crawl(CategoryPage, start_urls= [url,], q= Q, CategoryID= categoryID, TownID= townID, PageCompanyID= pagecompanyID, SalesRevenue= salesRevenue)
+        process.crawl(CategoryPage, start_urls= [url,], q= Q, CategoryID= categoryID, TownID= townID, PageID= pageID)
     process.start()
     # process.stop()
     
@@ -110,7 +96,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         limite = int(sys.argv[2])
     else:
-        limite = 10
+        limite = 1
     # for i in range(num_industry):
     while True:
         IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
@@ -121,16 +107,16 @@ if __name__ == "__main__":
             CategoryID = category_data[0]
             if len(NewPageDatas) >= limite:
                 break
-            pagecompany_datas = SelectItems(DB_NAME, "PageCompany", "CategoryID,", [CategoryID,])
-            num_pagecompany_datas = len(pagecompany_datas)
-            for page_idx, pagecompany_data in enumerate(pagecompany_datas):
-                PageCompanyID = pagecompany_data[0]
-                TownID = pagecompany_data[-2]
+            page_datas = SelectItems(DB_NAME, "Page", "CategoryID,", [CategoryID,])
+            num_page_datas = len(page_datas)
+            for page_idx, page_data in enumerate(page_datas):
+                PageID = page_data[0]
+                TownID = page_data[-1]
                 if len(NewPageDatas) >= limite:
                     break
-                company_datas = SelectItems(DB_NAME, "Company", "CategoryID, TownID, PageCompanyID", [CategoryID, TownID, PageCompanyID])
+                company_datas = SelectItems(DB_NAME, "PageCompany", "CategoryID, TownID, PageID", [CategoryID, TownID, PageID])
                 if (len(company_datas) == 0):
-                    NewPageDatas.append([CategoryID, pagecompany_data])
+                    NewPageDatas.append([CategoryID, page_data])
         num_add = len(NewPageDatas)
         print (f"Industry {i+1:02d} Pages ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
@@ -141,29 +127,24 @@ if __name__ == "__main__":
             jobs.append(P)
         for P in jobs:
             P.join(timeout= num_add * 2 if num_add > 10 else 20)
-        CompanyData = []
+        PageCompanyData = []
         res = -1
         while not Q.empty():
-            com_data = Q.get(timeout= 5)
-            res = com_data["result"]
-            townID = com_data["town"]
-            pagecompanyID = com_data["pagecompany"]
-            categoryID = com_data["category"]
-            company = com_data["data"]
-            SalesRevenue = com_data["sales"]
+            loc_data = Q.get(timeout= 5)
+            res = loc_data["result"]
+            townID = loc_data["town"]
+            pageID = loc_data["page"]
+            categoryID = loc_data["category"]
+            page_companys = loc_data["data"]
             if res == 0:
-                if len(company) > 0:
-                    Name = company["Name"]
-                    ShortName = company["Trade"]
-                    Addr = company["Address"]
-                    Locat = company["Location"]
-                    ComType = company["CompanyType"]
-                    Website = company["WebSite"]
-                    Phone = company["Phone"]
-                    # print ((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
-                    CompanyData.append((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
-        print (f"Industry {i+1:02d} Page ... Num insert\t{len(CompanyData)}")
-        INSERT(DB_NAME, "Company", CompanyData)
-        # break
+                if len(page_companys) > 0:
+                    for name in page_companys:
+                        url = page_companys[name]["URL"]
+                        salesRevenue = page_companys[name]["Sales"]
+                        PageCompanyData.append((name, url, salesRevenue, categoryID, townID, pageID))
+        Q.close()
+        Q.join_thread()
+        print (f"Industry {i+1:02d} Page ... Num insert\t{len(PageCompanyData)}")
+        INSERT(DB_NAME, "PageCompany", PageCompanyData)
         if num_add == 0:
             break
