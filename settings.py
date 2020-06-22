@@ -14,6 +14,7 @@ BOT_NAME = 'Crawler'
 SPIDER_MODULES = ['Crawler.spiders']
 NEWSPIDER_MODULE = 'Crawler.spiders'
 
+SPLASH_URL = 'http://localhost:8050'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'Crawler (+http://www.yourdomain.com)'
@@ -47,16 +48,21 @@ DNS_TIMEOUT = 5
 
 # Enable or disable spider middlewares
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    'module_sample.middlewares.ModuleSampleSpiderMiddleware': 543,
-#}
+SPIDER_MIDDLEWARES = {
+   'module_sample.middlewares.ModuleSampleSpiderMiddleware': 543,
+   'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
+}
 
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
-#DOWNLOADER_MIDDLEWARES = {
-#    'module_sample.middlewares.ModuleSampleDownloaderMiddleware': 543,
-#}
-
+DOWNLOADER_MIDDLEWARES = {
+   'module_sample.middlewares.ModuleSampleDownloaderMiddleware': 543,
+    'scrapy_splash.SplashCookiesMiddleware': 723,
+    'scrapy_splash.SplashMiddleware': 725,
+    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+}
+DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
+HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
 # Enable or disable extensions
 # See https://doc.scrapy.org/en/latest/topics/extensions.html
 #EXTENSIONS = {

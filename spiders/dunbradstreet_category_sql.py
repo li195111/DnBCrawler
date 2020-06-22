@@ -9,6 +9,7 @@ logging.getLogger('scrapy').setLevel(logging.WARNING)
 logging.getLogger('scrapy').propagate = False
 import json
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import GetItemID, SelectItems, INSERT
 
 DNB_BASE = 'https://www.dnb.com'
@@ -106,8 +107,14 @@ if __name__ == "__main__":
     parsesed = 0
     num_industry = len(ALL_INDUSTRY)
 
-    limite = 10
-    i = 2
+    if len(sys.argv) > 1:
+        i = int(sys.argv[1])
+    else:
+        i = 2
+    if len(sys.argv) > 2:
+        limite = int(sys.argv[2])
+    else:
+        limite = 10
     while True:
         all_category_parses = 0
         category_parsesed = 0
@@ -140,7 +147,9 @@ if __name__ == "__main__":
                     RegionData.append((name, regions[name], idx))
             else:
                 category_parsesed -= 1
+                
         INSERT(DB_NAME, "Region", RegionData)
+        
         all_parses += all_category_parses
         parsesed += category_parsesed
         category_parse_rate = (category_parsesed + 1e-8) / (all_category_parses + 1e-8)
