@@ -43,7 +43,10 @@ class CategoryPage(scrapy.Spider):
                 if len(companys_info) > 0:
                     current_page = int(companys_info[0])
                     max_numb_company = int(companys_info[1])
-                    max_page = int(companys_info[2])
+                    try:
+                        max_page = int(companys_info[2])
+                    except ValueError:
+                        max_page = current_page
                     max_display_company = int(companys_info[3])
                     for i in range(max_page):
                         town_pages[i+1] = response.url[:-1].replace(self.base_url,"") + str(i+1)

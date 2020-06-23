@@ -106,7 +106,6 @@ if __name__ == "__main__":
     all_parses = 0
     parsesed = 0
     num_industry = len(ALL_INDUSTRY)
-
     if len(sys.argv) > 1:
         i = int(sys.argv[1])
     else:
@@ -136,7 +135,7 @@ if __name__ == "__main__":
         Q = multiprocessing.Queue()
         P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewIndustryDatas, Q))
         P.start()
-        P.join(timeout= num_add if num_add > 10 else 10)
+        P.join(timeout= num_add * 2 if num_add > 10 else 20)
         RegionData = []
         while not Q.empty():
             region_datas = Q.get(timeout= 5)
@@ -147,12 +146,13 @@ if __name__ == "__main__":
                     RegionData.append((name, regions[name], idx))
             else:
                 category_parsesed -= 1
-                
-        INSERT(DB_NAME, "Region", RegionData)
-        
         all_parses += all_category_parses
         parsesed += category_parsesed
         category_parse_rate = (category_parsesed + 1e-8) / (all_category_parses + 1e-8)
-        print (f"Industry ... {specific_industry_names[i]:50s} ... Regions Parse Rate: {category_parse_rate * 100:.2f} %")
+        print (f"Industry ... {specific_industry_names[i]:50s} ... Regions Parse Rate: {category_parse_rate * 100:.2f} %")                
+        INSERT(DB_NAME, "Region", RegionData)
+        Q.close()
+        Q.join_thread()
+        P.kill()
         if category_parse_rate == 1:
             break
