@@ -17,7 +17,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-WAIT_TIME = 0.1
+WAIT_TIME = 0.01
 
 Industry_TABLE_SYNTAX ='''
 CREATE TABLE IF NOT EXISTS %s (
