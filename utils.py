@@ -7,6 +7,16 @@ import sqlite3
 import mysql.connector
 import pymysql
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 Industry_TABLE_SYNTAX ='''
 CREATE TABLE IF NOT EXISTS %s (
     ID INT AUTO_INCREMENT PRIMARY KEY,
@@ -94,32 +104,43 @@ ITEM_IDS = {"Industry":     np.array([0,]),
              "PageCompany": np.array([0,3,4,5]),
              "Company":     np.array([0,2,3,4]),}
 
-def CONNECT_DB_CURSOR(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password,
-        database= DB_NAME
-    )
-    return connect.cursor()
-
 def CREATE_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                port= 3306)
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
     cursor.close()
     connect.close()
 
 def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                port= 3306)
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     cursor.execute("SHOW DATABASES")
     CHECK = ((DB_NAME,) in cursor)
@@ -127,23 +148,44 @@ def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
     connect.close()
 
 def DROP_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                port= 3306)
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     cursor.execute(f"DROP DATABASE IF EXISTS {DB_NAME}")
     cursor.close()
     connect.close()
 
 def CREATE_TB(TB_NAME, TB_SYNTAX, DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password,
-        database= DB_NAME
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                database= DB_NAME,
+                port= 3306)
+            
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     cursor.execute(TB_SYNTAX % TB_NAME)
     cursor.close()
@@ -155,12 +197,23 @@ def INIT_DB(DB_NAME= "test"):
         CREATE_TB(TB_NAMES[i], TB_SYNTAXS[i], DB_NAME)
     
 def INSERT(DB_NAME:str, TB_NAME:str, INSERT_VAL:list, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password,
-        database= DB_NAME
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                database= DB_NAME,
+                port= 3306)
+            
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     ITEMS = INSERT_TB_ITEMS[TB_NAME]
     num_items = len([item for item in ITEMS.split(",") if len(item) != 0])
@@ -192,12 +245,23 @@ def INSERT(DB_NAME:str, TB_NAME:str, INSERT_VAL:list, host= 'localhost', user= '
     connect.close()
 
 def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password,
-        database= DB_NAME
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                database= DB_NAME,
+                port= 3306)
+            
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     ITEMS = GET_ITEMS[TB_NAME]
     num_items = len([item for item in ITEMS.split(",") if len(item) != 0])
@@ -213,23 +277,27 @@ def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', pa
     cursor.close()
     connect.close()
     if len(result) != 1:
-        raise result
+        raise ValueError(f"{result}")
     return result[0][0]
 
 def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = pymysql.connect(
-        host= host,
-        user= user,
-        password= password,
-        database= DB_NAME,
-        port= 3306)
-    # connect = mysql.connector.connect(
-    #         host= host,
-    #         user= user,
-    #         password= password,
-    #         database= DB_NAME,
-    #         port= 3306
-    # )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                database= DB_NAME,
+                port= 3306)
+            
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     num_items = len([item for item in SELECT_ITEMS.split(",") if len(item) != 0])
     if num_items == 1:
@@ -247,12 +315,23 @@ def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'loca
     return result
 
 def DeleteItem(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'localhost', user= 'root', password= 'Aboutx_121'):
-    connect = mysql.connector.connect(
-        host= host,
-        user= user,
-        password= password,
-        database= DB_NAME
-    )
+    while True:
+        try:
+            connect = mysql.connector.connect(
+                host= host,
+                user= user,
+                password= password,
+                database= DB_NAME,
+                port= 3306)
+            
+        except mysql.connector.DatabaseError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        except mysql.connector.OperationalError as e:
+            print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
+            time.sleep(0.1)
+        if connect.is_connected():
+            break
     cursor = connect.cursor()
     num_items = len([item for item in SELECT_ITEMS.split(",") if len(item) != 0])
     if num_items == 1:

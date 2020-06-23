@@ -145,5 +145,7 @@ if __name__ == "__main__":
             limite += 1
         print (f"Industry {i+1:02d} Town ... Num insert\t{len(TownData)}")
         INSERT(DB_NAME, "Town", TownData)
+        for P in jobs:
+            P.kill()
         if num_add == 0 and res == 0:
             break
