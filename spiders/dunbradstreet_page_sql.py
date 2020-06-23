@@ -129,10 +129,12 @@ if __name__ == "__main__":
                         url = page_companys[name]["URL"]
                         salesRevenue = page_companys[name]["Sales"]
                         PageCompanyData.append((name, url, salesRevenue, categoryID, townID, pageID))
+        if len(PageCompanyData) == 0:
+            limite += 1
+        print (f"Industry {i+1:02d} Page ... Num insert\t{len(PageCompanyData)}")
         Q.close()
         Q.join_thread()
         P.kill()
-        print (f"Industry {i+1:02d} Page ... Num insert\t{len(PageCompanyData)}")
         INSERT(DB_NAME, "PageCompany", PageCompanyData)
         if num_add == 0:
             break

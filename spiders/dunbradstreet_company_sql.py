@@ -149,6 +149,8 @@ if __name__ == "__main__":
                     Phone = company["Phone"]
                     # print ((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
                     CompanyData.append((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
+        if len(PageCompanyData) == 0:
+            limite += 1
         print (f"Industry {i+1:02d} Page ... Num insert\t{len(CompanyData)}")
         INSERT(DB_NAME, "Company", CompanyData)
         Q.close()
