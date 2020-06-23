@@ -296,7 +296,7 @@ def json2sql(mode= None,jsonDir= 'Industrys', DB_NAME= 'test', host= 'localhost'
                             if not in_region_database:
                                 RegionData.append(reg_data)
                         INSERT(DB_NAME, "Region", RegionData)
-                        print (f"Industry {i+1:02d} Region ... Number Insert {num_insert:05d} ... {(idx+1) * 100 / numCategorys:.2f} %", end= '\r')
+                        print (f"Industry {i+1:02d} Region ... Number Insert {len(RegionData):05d} ... {(idx+1) * 100 / numCategorys:.2f} %", end= '\r')
                 elif mode == "location":
                     if ("Locations" in industry_data):
                         num_reg_datas = len(industry_data["Locations"])
