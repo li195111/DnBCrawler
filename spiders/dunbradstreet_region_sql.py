@@ -138,7 +138,7 @@ if __name__ == "__main__":
             elif res == 1:
                 url = loc
                 LocationData.append((regionName, url, categoryID, regionID))
-        if len(PageCompanyData) == 0:
+        if len(LocationData) == 0:
             limite += 1
         print (f"Industry {i+1:02d} Location ... Num insert\t{len(LocationData)}")
         INSERT(DB_NAME, "Location", LocationData)

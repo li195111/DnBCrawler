@@ -106,53 +106,48 @@ if __name__ == "__main__":
     all_parses = 0
     parsesed = 0
     num_industry = len(ALL_INDUSTRY)
-    if len(sys.argv) > 1:
-        i = int(sys.argv[1])
-    else:
-        i = 2
-    if len(sys.argv) > 2:
-        limite = int(sys.argv[2])
-    else:
-        limite = 10
-    while True:
-        all_category_parses = 0
-        category_parsesed = 0
-        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
-        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
-        num_category = len(category_datas)
-        all_category_parses += num_category
-        NewIndustryDatas = []
-        for idx, data in enumerate(category_datas):
-            CategoryID = data[0]
-            if len(NewIndustryDatas) >= limite:
-                break
-            region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
-            if (len(region_datas) == 0):
-                NewIndustryDatas.append(data)
-        num_add = len(NewIndustryDatas)
-        category_parsesed = num_category - num_add
-        print (f"Industry {i+1}\t... Number to add:\t{num_add}")
-        Q = multiprocessing.Queue()
-        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewIndustryDatas, Q))
-        P.start()
-        P.join(timeout= num_add * 2 if num_add > 10 else 20)
-        RegionData = []
-        while not Q.empty():
-            region_datas = Q.get(timeout= 5)
-            idx = region_datas["idx"]
-            regions = region_datas["data"]
-            if len(regions) != 0:
-                for name in regions:
-                    RegionData.append((name, regions[name], idx))
-            else:
-                category_parsesed -= 1
-        all_parses += all_category_parses
-        parsesed += category_parsesed
-        category_parse_rate = (category_parsesed + 1e-8) / (all_category_parses + 1e-8)
-        print (f"Industry ... {specific_industry_names[i]:50s} ... Regions Parse Rate: {category_parse_rate * 100:.2f} %")                
-        INSERT(DB_NAME, "Region", RegionData)
-        Q.close()
-        Q.join_thread()
-        P.kill()
-        if category_parse_rate == 1:
+    for i in range(num_industry):
+    # if len(sys.argv) > 1:
+    #     i = int(sys.argv[1])
+    # else:
+    #     i = 2
+        if len(sys.argv) > 2:
+            limite = int(sys.argv[2])
+        else:
+            limite = 10
+        while True:
+            IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+            category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+            num_category = len(category_datas)
+            NewIndustryDatas = []
+            for idx, data in enumerate(category_datas):
+                CategoryID = data[0]
+                if len(NewIndustryDatas) >= limite:
+                    break
+                region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
+                if (len(region_datas) == 0):
+                    NewIndustryDatas.append(data)
+            num_add = len(NewIndustryDatas)
+            print (f"Industry {i+1}\t... Number to add:\t{num_add}")
+            Q = multiprocessing.Queue()
+            P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewIndustryDatas, Q))
+            P.start()
+            P.join(timeout= num_add * 2 if num_add > 10 else 20)
+            RegionData = []
+            while not Q.empty():
+                region_datas = Q.get(timeout= 5)
+                idx = region_datas["idx"]
+                regions = region_datas["data"]
+                if len(regions) != 0:
+                    for name in regions:
+                        RegionData.append((name, regions[name], idx))
+            num_datas = len(RegionData)
+            parse_rate = (num_add) / (num_datas + 1e-8)
+            print (f"Industry ... {specific_industry_names[i]:50s} ... \t{num_datas:03d} ... {parse_rate * 100:.2f} %")                
+            INSERT(DB_NAME, "Region", RegionData)
+            Q.close()
+            Q.join_thread()
+            P.kill()
             break
+            if num_add == 0 or parse_rate == 1:
+                break
