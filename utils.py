@@ -118,8 +118,11 @@ def CREATE_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
     cursor.close()
@@ -139,8 +142,11 @@ def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     cursor.execute("SHOW DATABASES")
     CHECK = ((DB_NAME,) in cursor)
@@ -161,8 +167,11 @@ def DROP_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     cursor.execute(f"DROP DATABASE IF EXISTS {DB_NAME}")
     cursor.close()
@@ -184,8 +193,11 @@ def CREATE_TB(TB_NAME, TB_SYNTAX, DB_NAME, host= 'localhost', user= 'root', pass
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     cursor.execute(TB_SYNTAX % TB_NAME)
     cursor.close()
@@ -212,8 +224,11 @@ def INSERT(DB_NAME:str, TB_NAME:str, INSERT_VAL:list, host= 'localhost', user= '
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     ITEMS = INSERT_TB_ITEMS[TB_NAME]
     num_items = len([item for item in ITEMS.split(",") if len(item) != 0])
@@ -260,8 +275,11 @@ def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', pa
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     ITEMS = GET_ITEMS[TB_NAME]
     num_items = len([item for item in ITEMS.split(",") if len(item) != 0])
@@ -296,8 +314,11 @@ def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'loca
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     num_items = len([item for item in SELECT_ITEMS.split(",") if len(item) != 0])
     if num_items == 1:
@@ -330,8 +351,11 @@ def DeleteItem(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'local
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
             time.sleep(0.1)
-        if connect.is_connected():
-            break
+        try:
+            if connect.is_connected():
+                break
+        except UnboundLocalError as e:
+            pass
     cursor = connect.cursor()
     num_items = len([item for item in SELECT_ITEMS.split(",") if len(item) != 0])
     if num_items == 1:
