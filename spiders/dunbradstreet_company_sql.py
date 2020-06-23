@@ -68,19 +68,10 @@ def run_dunbrad_spider(town_datas, Q):
             {
                 'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
                 # 'ROBOTSTXT_OBEY': False,
-                'DOWNLOAD_DELAY': 1,
+                'DOWNLOAD_DELAY': 1.5,
                 'CONCURRENT_REQUESTS': 16,
                 'TELNETCONSOLE_PORT' : None,
                 'TELNETCONSOLE_ENABLED': False,
-                # 'SPLASH_URL' : 'http://localhost:8050',
-                # 'DOWNLOADER_MIDDLEWARES' : {'scrapy_splash.SplashCookiesMiddleware': 723,
-                #                             'scrapy_splash.SplashMiddleware': 725,
-                #                             'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
-                #                             },
-                # 'SPIDER_MIDDLEWARES' : {'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
-                # },
-                # 'DUPEFILTER_CLASS' : 'scrapy_splash.SplashAwareDupeFilter',
-                # 'HTTPCACHE_STORAGE' : 'scrapy_splash.SplashAwareFSCacheStorage',
             }
         )
     for data in town_datas:
@@ -134,13 +125,9 @@ if __name__ == "__main__":
         num_add = len(NewPageDatas)
         print (f"Industry {i+1:02d} Pages ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
-        jobs = []
-        for data in NewPageDatas:
-            P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
-            P.start()
-            jobs.append(P)
-        for P in jobs:
-            P.join(timeout= num_add * 2 if num_add > 10 else 20)
+        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewPageDatas, Q))
+        P.start()
+        P.join(timeout= num_add * 2 if num_add > 10 else 20)
         CompanyData = []
         res = -1
         while not Q.empty():
@@ -164,6 +151,8 @@ if __name__ == "__main__":
                     CompanyData.append((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
         print (f"Industry {i+1:02d} Page ... Num insert\t{len(CompanyData)}")
         INSERT(DB_NAME, "Company", CompanyData)
-        # break
+        Q.close()
+        Q.join_thread()
+        P.kill()
         if num_add == 0:
             break

@@ -61,7 +61,7 @@ def run_dunbrad_spider(regions, Q):
             {
                 'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
                 # 'ROBOTSTXT_OBEY': False,
-                'DOWNLOAD_DELAY': 1,
+                'DOWNLOAD_DELAY': 1.5,
                 'CONCURRENT_REQUESTS': 16,
                 'TELNETCONSOLE_PORT' : None,
                 'TELNETCONSOLE_ENABLED':False
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         Q = multiprocessing.Queue()
         P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewLocationDatas, Q))
         P.start()
-        P.join(timeout= num_add if num_add > 10 else 10)
+        P.join(timeout= num_add * 2 if num_add > 10 else 20)
         LocationData = []
         res = -1
         while not Q.empty():
@@ -139,6 +139,9 @@ if __name__ == "__main__":
                 url = loc
                 LocationData.append((regionName, url, categoryID, regionID))
         print (f"Industry {i+1:02d} Location ... Num insert\t{len(LocationData)}")
-        INSERT(DB_NAME, "Location", LocationData)        
+        INSERT(DB_NAME, "Location", LocationData)
+        Q.close()
+        Q.join_thread()
+        P.kill()
         if num_add == 0 and res == 0:
             break

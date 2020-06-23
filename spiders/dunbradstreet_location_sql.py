@@ -60,7 +60,7 @@ def run_dunbrad_spider(location_datas, Q):
             {
                 'USER_AGENT': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
                 # 'ROBOTSTXT_OBEY': False,
-                'DOWNLOAD_DELAY': 1,
+                'DOWNLOAD_DELAY': 1.5,
                 'CONCURRENT_REQUESTS': 16,
                 'TELNETCONSOLE_PORT' : None,
                 'TELNETCONSOLE_ENABLED':False
@@ -117,13 +117,9 @@ if __name__ == "__main__":
         num_add = len(NewTownDatas)
         print (f"Industry {i+1:02d} {location_name} ... Number to add:\t{num_add}")
         Q = multiprocessing.Queue()
-        jobs = []
-        for data in NewTownDatas:
-            P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
-            P.start()
-            jobs.append(P)
-        for P in jobs:
-            P.join(timeout= num_add * 2 if num_add > 10 else 20)
+        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewTownDatas, Q))
+        P.start()
+        P.join(timeout= num_add * 2 if num_add > 10 else 20)
         TownData = []
         res = -1
         while not Q.empty():
@@ -145,7 +141,8 @@ if __name__ == "__main__":
             limite += 1
         print (f"Industry {i+1:02d} Town ... Num insert\t{len(TownData)}")
         INSERT(DB_NAME, "Town", TownData)
-        for P in jobs:
-            P.kill()
+        Q.close()
+        Q.join_thread()
+        P.kill()
         if num_add == 0 and res == 0:
             break
