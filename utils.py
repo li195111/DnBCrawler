@@ -116,10 +116,10 @@ def CREATE_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
                 port= 3306)
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -140,10 +140,10 @@ def CHECK_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
                 port= 3306)
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -165,10 +165,10 @@ def DROP_DB(DB_NAME, host= 'localhost', user= 'root', password= 'Aboutx_121'):
                 port= 3306)
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -191,10 +191,10 @@ def CREATE_TB(TB_NAME, TB_SYNTAX, DB_NAME, host= 'localhost', user= 'root', pass
             
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -222,10 +222,10 @@ def INSERT(DB_NAME:str, TB_NAME:str, INSERT_VAL:list, host= 'localhost', user= '
             
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -273,10 +273,10 @@ def GetItemID(DB_NAME, TB_NAME, ITEM_VALUES, host= 'localhost', user= 'root', pa
             
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -312,10 +312,10 @@ def SelectItems(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'loca
             
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
@@ -349,10 +349,10 @@ def DeleteItem(DB_NAME:str, TB_NAME:str, SELECT_ITEMS, ITEM_VALUES, host= 'local
             
         except mysql.connector.DatabaseError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         except mysql.connector.OperationalError as e:
             print (f"{bcolors.FAIL}Error:{bcolors.OKGREEN}\t{e}{bcolors.ENDC}")
-            time.sleep(WAIT_TIME)
+            time.sleep(np.random.random())
         try:
             if connect.is_connected():
                 break
