@@ -11,11 +11,11 @@ import json
 import os
 import time 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import GetItemID, SelectItems, INSERT, INIT_DB
+from utils import GetItemID, SelectItems, INSERT, INIT_DB, do_jobs
 
 DNB_BASE = 'https://www.dnb.com'
 DB_NAME = "test"
-
+TB_NAME = "Company"
 class CategoryPage(scrapy.Spider):
 
     name = "category_spider"
@@ -75,11 +75,11 @@ def run_dunbrad_spider(town_datas, Q):
             }
         )
     for data in town_datas:
-        categoryID = data[0]
-        pagecompanyID = data[1][0]
-        townID = data[1][-2]
-        salesRevenue = data[1][-4]
-        url = DNB_BASE + data[1][2]
+        pagecompanyID = data[0]
+        url = DNB_BASE + data[2]
+        salesRevenue = data[3]
+        categoryID = data[4]
+        townID = data[5]
         process.crawl(CategoryPage, start_urls= [url,], q= Q, CategoryID= categoryID, TownID= townID, PageCompanyID= pagecompanyID, SalesRevenue= salesRevenue)
     process.start()
     # process.stop()
@@ -94,67 +94,50 @@ if __name__ == "__main__":
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
     INIT_DB(DB_NAME)
     num_industry = len(ALL_INDUSTRY)
-    if len(sys.argv) > 1:
-        i = int(sys.argv[1])
-    else:
-        i = 0
-    if len(sys.argv) > 2:
-        limite = int(sys.argv[2])
-    else:
-        limite = 10
-    # for i in range(num_industry):
+    # if len(sys.argv) > 1:
+    #     i = int(sys.argv[1])
+    # else:
+    #     i = 0
+    # if len(sys.argv) > 2:
+    #     limite = int(sys.argv[2])
+    # else:
+    #     limite = 10
+    limite = 20
+    max_iter = 10
+    it = 1
     while True:
-        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
-        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
-        numCategorys = len(category_datas)
-        NewPageDatas = []
-        for idx, category_data in enumerate(category_datas):
-            CategoryID = category_data[0]
-            if len(NewPageDatas) >= limite:
-                break
-            pagecompany_datas = SelectItems(DB_NAME, "PageCompany", "CategoryID,", [CategoryID,])
-            num_pagecompany_datas = len(pagecompany_datas)
-            for page_idx, pagecompany_data in enumerate(pagecompany_datas):
-                PageCompanyID = pagecompany_data[0]
-                TownID = pagecompany_data[-2]
-                if len(NewPageDatas) >= limite:
-                    break
-                company_datas = SelectItems(DB_NAME, "Company", "CategoryID, TownID, PageCompanyID", [CategoryID, TownID, PageCompanyID])
-                if (len(company_datas) == 0):
-                    NewPageDatas.append([CategoryID, pagecompany_data])
-        num_add = len(NewPageDatas)
-        print (f"Industry {i+1:02d} Pages ... Number to add:\t{num_add}")
-        Q = multiprocessing.Queue()
-        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewPageDatas, Q))
-        P.start()
-        P.join(timeout= num_add * 2 if num_add > 10 else 20)
-        CompanyData = []
-        res = -1
-        while not Q.empty():
-            com_data = Q.get(timeout= 5)
-            res = com_data["result"]
-            townID = com_data["town"]
-            pagecompanyID = com_data["pagecompany"]
-            categoryID = com_data["category"]
-            company = com_data["data"]
-            SalesRevenue = com_data["sales"]
-            if res == 0:
-                if len(company) > 0:
-                    Name = company["Name"]
-                    ShortName = company["Trade"]
-                    Addr = company["Address"]
-                    Locat = company["Location"]
-                    ComType = company["CompanyType"]
-                    Website = company["WebSite"]
-                    Phone = company["Phone"]
-                    # print ((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
-                    CompanyData.append((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
-        if len(PageCompanyData) == 0:
-            limite += 1
-        print (f"Industry {i+1:02d} Page ... Num insert\t{len(CompanyData)}")
-        INSERT(DB_NAME, "Company", CompanyData)
-        Q.close()
-        Q.join_thread()
-        P.kill()
-        if num_add == 0:
+        total = 0
+        parse = 0
+        for i in range(num_industry):
+            IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+            category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+            numCategorys = len(category_datas)
+            categorys = 0
+            categroy_parse = 0
+            for idx, category_data in enumerate(category_datas):
+                Q = multiprocessing.Queue()
+                jobs = []
+                CategoryID = category_data[0]
+                pagecompany_datas = SelectItems(DB_NAME, "PageCompany", "CategoryID,", [CategoryID,])
+                num_pagecompany_datas = len(pagecompany_datas)
+                for page_idx, pagecompany_data in enumerate(pagecompany_datas):
+                    PageCompanyID = pagecompany_data[0]
+                    TownID = pagecompany_data[-2]
+                    company_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, TownID, PageCompanyID", [CategoryID, TownID, PageCompanyID])
+                    if (len(company_datas) == 0):
+                        P = multiprocessing.Process(target= run_dunbrad_spider, args= ([pagecompany_data,], Q))
+                        P.start()
+                        jobs.append(P)
+                        time.sleep(0.8)
+                    num_jobs = len(jobs)
+                    if num_jobs >= limite:
+                        categroy_parse += (num_pagecompany_datas - num_jobs)
+                        jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_pagecompany_datas)
+                categroy_parse += (num_pagecompany_datas - num_jobs)
+                jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_pagecompany_datas)
+            total += categorys
+            parse += categroy_parse
+        print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
+        if (parse / total) == 1 or it >= max_iter:
             break
+        it += 1

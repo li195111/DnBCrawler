@@ -11,10 +11,11 @@ import json
 import os
 import time 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import GetItemID, SelectItems, INSERT, INIT_DB
+from utils import GetItemID, SelectItems, INSERT, INIT_DB, do_jobs
 
 DNB_BASE = 'https://www.dnb.com'
 DB_NAME = "test"
+TB_NAME = "Page"
 
 class CategoryPage(scrapy.Spider):
 
@@ -76,10 +77,10 @@ def run_dunbrad_spider(town_datas, Q):
             }
         )
     for data in town_datas:
-        categoryID = data[0]
-        townID = data[1][0]
-        townName = data[1][1]
-        url = DNB_BASE + data[1][2]
+        townID = data[0]
+        townName = data[1]
+        url = DNB_BASE + data[2]
+        categoryID = data[3]
         process.crawl(CategoryPage, start_urls= [url,], q= Q, CategoryID= categoryID, TownID= townID, TownName= townName)
     process.start()
     process.stop()
@@ -94,63 +95,49 @@ if __name__ == "__main__":
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
     INIT_DB(DB_NAME)
     num_industry = len(ALL_INDUSTRY)
-    if len(sys.argv) > 1:
-        i = int(sys.argv[1])
-    else:
-        i = 2
-    if len(sys.argv) > 2:
-        limite = int(sys.argv[2])
-    else:
-        limite = 10
-    # for i in range(num_industry):
+    # if len(sys.argv) > 1:
+    #     i = int(sys.argv[1])
+    # else:
+    #     i = 2
+    # if len(sys.argv) > 2:
+    #     limite = int(sys.argv[2])
+    # else:
+    #     limite = 10
+    limite = 20
+    max_iter = 10
+    it = 1
     while True:
-        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
-        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
-        numCategorys = len(category_datas)
-        NewPageDatas = []
-        location_name = ""
-        for idx, category_data in enumerate(category_datas):
-            CategoryID = category_data[0]
-            if len(NewPageDatas) >= limite:
-                break
-            town_datas = SelectItems(DB_NAME, "Town", "CategoryID,", [CategoryID,])
-            num_town_datas = len(town_datas)
-            for town_idx, town_data in enumerate(town_datas):
-                TownID = town_data[0]
-                if len(NewPageDatas) >= limite:
-                    break
-                page_datas = SelectItems(DB_NAME, "Page", "CategoryID, TownID", [CategoryID, TownID])
-                if (len(page_datas) == 0):
-                    NewPageDatas.append([CategoryID, town_data])
-        num_add = len(NewPageDatas)
-        print (f"Industry {i+1:02d} {location_name} ... Number to add:\t{num_add}")
-        Q = multiprocessing.Queue()
-        P = multiprocessing.Process(target= run_dunbrad_spider, args= (NewPageDatas, Q))
-        P.start()
-        P.join(timeout= num_add * 2 if num_add > 10 else 20)
-        PageData = []
-        res = -1
-        while not Q.empty():
-            loc_data = Q.get(timeout= 5)
-            res = loc_data["result"]
-            townID = loc_data["town"]
-            townName = loc_data["town_name"]
-            categoryID = loc_data["category"]
-            town = loc_data["data"]
-            if res == 0:
-                if len(town) > 0:
-                    for pagenumb in town:
-                        url = town[pagenumb]
-                        PageData.append((pagenumb, url, categoryID, townID))
-            elif res == 1:
-                url = town
-                PageData.append((townName, url, categoryID, townID))
-        if len(PageData) == 0:
-            limite += 1
-        print (f"Industry {i+1:02d} Page ... Num insert\t{len(PageData)}")
-        INSERT(DB_NAME, "Page", PageData)
-        Q.close()
-        Q.join_thread()
-        P.kill()
-        if num_add == 0:
+        total = 0
+        parse = 0
+        for i in range(num_industry):
+            IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+            category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+            numCategorys = len(category_datas)
+            categorys = 0
+            categroy_parse = 0
+            for idx, category_data in enumerate(category_datas):
+                Q = multiprocessing.Queue()
+                jobs = []
+                CategoryID = category_data[0]
+                town_datas = SelectItems(DB_NAME, "Town", "CategoryID,", [CategoryID,])
+                num_town_datas = len(town_datas)
+                for town_idx, town_data in enumerate(town_datas):
+                    TownID = town_data[0]
+                    page_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, TownID", [CategoryID, TownID])
+                    if (len(page_datas) == 0):
+                        P = multiprocessing.Process(target= run_dunbrad_spider, args= ([town_data,], Q))
+                        P.start()
+                        jobs.append(P)
+                        time.sleep(0.8)
+                    num_jobs = len(jobs)
+                    if num_jobs >= limite:
+                        categroy_parse += (num_town_datas - num_jobs)
+                        jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_town_datas)
+                categroy_parse += (num_town_datas - num_jobs)
+                jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_town_datas)
+            total += categorys
+            parse += categroy_parse
+        print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
+        if (parse / total) == 1 or it >= max_iter:
             break
+        it += 1

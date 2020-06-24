@@ -11,11 +11,11 @@ import time
 import json
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import GetItemID, SelectItems, INSERT, INIT_DB, do_jobs
+from utils import GetItemID, SelectItems, INSERT, INIT_DB
 
 DNB_BASE = 'https://www.dnb.com'
 DB_NAME = "test"
-TB_NAME = "Region"
+
 class CategoryPage(scrapy.Spider):
 
     name = "category_spider"
@@ -23,11 +23,12 @@ class CategoryPage(scrapy.Spider):
     start_urls = []
     q = None
     CategoryID = None
+    CategoryName = None
     def parse(self, response):
         # print('\n********** Second Status Info **********\n')
         if response.status == 200:
             print(f"URL :\t\t{response.url} ... OK")
-            RegionsDict = {}
+            RegionsNumb = []
             load_region_info = response.css("h1.title::text")
             load_error = 'Oh no! 500 Error' in load_region_info.extract() or 'Oh no! 404 Error' in load_region_info.extract()
             if not load_error:
@@ -35,11 +36,16 @@ class CategoryPage(scrapy.Spider):
                 for region in All_Regions:
                     Name = region.css("a::text").extract_first().strip()
                     Url = region.css("a::attr('href')").extract_first()
-                    RegionsDict[Name] = Url
+                    Number = region.css("a").css("span.number-countries::text").extract_first().replace("(","").replace(")","").replace(",","")
+                    try:
+                        Number = int(Number)
+                    except ValueError:
+                        Number = 0
+                    RegionsNumb.append(Number)
             else:
                 next_page = -1
                 print (f"Error {self.start_urls[0]}")
-            self.q.put({"category":self.CategoryID,"data":RegionsDict})
+            self.q.put({"ID":self.CategoryID,"Name":self.CategoryName,"data":sum(RegionsNumb)})
         # print('\n********** Second Status Info **********\n')
 
 
@@ -56,8 +62,9 @@ def run_dunbrad_spider(industrys, q):
         )
     for data in industrys:
         categoryID = data[0]
+        categoryName = data[1]
         url = DNB_BASE + data[2]
-        process.crawl(CategoryPage, start_urls= [url,], q= q, CategoryID= categoryID)
+        process.crawl(CategoryPage, start_urls= [url,], q= q, CategoryID= categoryID, CategoryName= categoryName)
     process.start()
     
 def Hello(url, q):
@@ -104,17 +111,15 @@ if __name__ == "__main__":
     INDUSTRY_DIR = os.path.join(CUR_PATH,"Industrys")
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
     INIT_DB(DB_NAME)
+    all_parses = 0
+    parsesed = 0
     num_industry = len(ALL_INDUSTRY)
-    max_iter = 10
-    it = 1
     while True:
-        total = 0
-        parse = 0
         for i in range(num_industry):
-            # if len(sys.argv) > 1:
-            #     i = int(sys.argv[1])
-            # else:
-            #     i = 2
+        # if len(sys.argv) > 1:
+        #     i = int(sys.argv[1])
+        # else:
+        #     i = 1
             # if len(sys.argv) > 2:
             #     limite = int(sys.argv[2])
             # else:
@@ -122,20 +127,34 @@ if __name__ == "__main__":
             IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
             category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
             num_category = len(category_datas)
-            total += num_category
+            
             Q = multiprocessing.Queue()
             jobs = []
             for data in category_datas:
-                region_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID,", [data[0],])
-                if (len(region_datas) == 0):
+                item = SelectItems(DB_NAME, "NumberOfCompany", "CategoryID,",[data[0],])
+                if len(item) == 0:
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
                     P.start()
                     jobs.append(P)
                     time.sleep(0.8)
             num_jobs = len(jobs)
-            parse += (num_category - num_jobs)
-            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_category)
-        print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
-        if (parse / total) == 1 or it >= max_iter:
+            print (f"Industry {i+1}\t... Number to add:\t{num_jobs*100/num_category:.2f} % Parse Rate:\t{(num_category-num_jobs)*100/num_category:.2f} %")
+            for P in jobs:
+                P.join(timeout= 20)
+            CountDatas = []
+            while not Q.empty():
+                region_datas = Q.get(timeout= 5)
+                categoryID = region_datas["ID"]
+                categoryName = region_datas["Name"]
+                NumberOfCompany = region_datas["data"]
+                if NumberOfCompany != 0:
+                    CountDatas.append((categoryName, NumberOfCompany, categoryID, IndustryID))
+                # print (f"{categoryID} {categoryName}:\t{NumberOfCompany}")
+            INSERT(DB_NAME, "NumberOfCompany", CountDatas)
+            Q.close()
+            Q.join_thread()
+            for P in jobs:
+                P.kill()
+            
+        if num_jobs == 0:
             break
-        it += 1

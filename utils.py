@@ -5,7 +5,7 @@ import json
 import numpy as np 
 import sqlite3
 import mysql.connector
-import pymysql
+import multiprocessing
 
 class bcolors:
     HEADER = '\033[95m'
@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS %s (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     Name VARCHAR(100) NOT NULL,
     URL VARCHAR(2083) NOT NULL,
+    IndustryID INTEGER NOT NULL);'''
+Count_TABLE_SYNTAX ='''
+CREATE TABLE IF NOT EXISTS %s (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Companies INTEGER NOT NULL,
+    CategoryID INTEGER NOT NULL,
     IndustryID INTEGER NOT NULL);'''
 Region_TABLE_SYNTAX ='''
 CREATE TABLE IF NOT EXISTS %s (
@@ -79,10 +86,11 @@ CREATE TABLE IF NOT EXISTS %s (
     Address VARCHAR(2083),
     Phone VARCHAR(100));'''
     
-TB_SYNTAXS = [Industry_TABLE_SYNTAX, Category_TABLE_SYNTAX, Region_TABLE_SYNTAX, Location_TABLE_SYNTAX, Town_TABLE_SYNTAX, Page_TABLE_SYNTAX, PageCompany_TABLE_SYNTAX, Company_TABLE_SYNTAX]
-TB_NAMES = ["Industry", "Category", "Region", "Location", "Town", "Page", "PageCompany", "Company"]
+TB_SYNTAXS = [Industry_TABLE_SYNTAX, Category_TABLE_SYNTAX, Count_TABLE_SYNTAX, Region_TABLE_SYNTAX, Location_TABLE_SYNTAX, Town_TABLE_SYNTAX, Page_TABLE_SYNTAX, PageCompany_TABLE_SYNTAX, Company_TABLE_SYNTAX]
+TB_NAMES = ["Industry", "Category", "NumberOfCompany", "Region", "Location", "Town", "Page", "PageCompany", "Company"]
 INSERT_TB_ITEMS = {"Industry":   "ID, Name",
                    "Category":   "Name, URL, IndustryID",
+                   "NumberOfCompany": "Name, Companies, CategoryID, IndustryID",
                    "Region":     "Name, URL, CategoryID",
                    "Location":   "Name, URL, CategoryID, RegionID",
                    "Town":       "Name, URL, CategoryID, LocationID",
@@ -91,6 +99,7 @@ INSERT_TB_ITEMS = {"Industry":   "ID, Name",
                    "Company":    "Name, CategoryID, TownID, PageCompanyID, ShortName, SalesRevenue, CompanyType, Website, Address, Phone"}
 GET_ITEMS = {"Industry":    "ID,",
              "Category":    "Name, IndustryID",
+             "NumberOfCompany": "Name, CategoryID",
              "Region":      "Name, CategoryID",
              "Location":    "Name, CategoryID, RegionID",
              "Town":        "Name, CategoryID, LocationID",
@@ -99,6 +108,7 @@ GET_ITEMS = {"Industry":    "ID,",
              "Company":     "Name, CategoryID, TownID, PageCompanyID"}
 ITEM_IDS = {"Industry":     np.array([0,]),
              "Category":    np.array([0,2]),
+             "NumberOfCompany": np.array([0,2]),
              "Region":      np.array([0,2]),
              "Location":    np.array([0,2,3]),
              "Town":        np.array([0,2,3]),
@@ -432,6 +442,105 @@ def json2sql(mode= None,jsonDir= 'Industrys', DB_NAME= 'test', host= 'localhost'
                             print (f"Industry {i+1:02d} Town ... Num insert {len(TownDatas):05d} ... {(idx+1) * 100 / numCategorys:03.2f} % {(reg_idx+1) * 100 / num_reg_datas:03.2f} %", end= '\r')
                             INSERT(DB_NAME, "Town", TownDatas)
     return
+    
+
+def do_jobs(DB_NAME, TB_NAME, i, jobs, Q, totals):
+    print (f"Industry {i+1}\t... Number to add:\t{len(jobs)*100/totals:.2f} % Parse Rate:\t{(totals - len(jobs))*100/totals:.2f} %")
+    for P in jobs:
+        P.join(timeout= 1)
+    InsertData = []
+    while not Q.empty():
+        if TB_NAME == "Region":
+            region_datas = Q.get(timeout= 1)
+            categoryID = region_datas["category"]
+            regions = region_datas["data"]
+            if len(regions) != 0:
+                for name in regions:
+                    InsertData.append((name, regions[name], categoryID))
+        elif TB_NAME == "Location":
+            loc_data = Q.get(timeout= 1)
+            res = loc_data["result"]
+            regionID = loc_data["region"]
+            regionName = loc_data["region_name"]
+            categoryID = loc_data["category"]
+            loc = loc_data["data"]
+            if res == 0:
+                if len(loc) > 0:
+                    for loc_name in loc:
+                        url = loc[loc_name]
+                        InsertData.append((loc_name, url, categoryID, regionID))
+            elif res == 1:
+                url = loc
+                InsertData.append((regionName, url, categoryID, regionID))
+        elif TB_NAME == "Town":
+            loc_data = Q.get(timeout= 1)
+            res = loc_data["result"]
+            locationID = loc_data["location"]
+            locationName = loc_data["location_name"]
+            categoryID = loc_data["category"]
+            town = loc_data["data"]
+            if res == 0:
+                if len(town) > 0:
+                    for loc_name in town:
+                        url = town[loc_name]
+                        InsertData.append((loc_name, url, categoryID, locationID))
+            elif res == 1:
+                url = town
+                InsertData.append((locationName, url, categoryID, locationID))
+        elif TB_NAME == "Page":
+            loc_data = Q.get(timeout= 1)
+            res = loc_data["result"]
+            townID = loc_data["town"]
+            townName = loc_data["town_name"]
+            categoryID = loc_data["category"]
+            town = loc_data["data"]
+            if res == 0:
+                if len(town) > 0:
+                    for pagenumb in town:
+                        url = town[pagenumb]
+                        InsertData.append((pagenumb, url, categoryID, townID))
+            elif res == 1:
+                url = town
+                InsertData.append((townName, url, categoryID, townID))
+        elif TB_NAME == "PageCompany":
+            loc_data = Q.get(timeout= 5)
+            res = loc_data["result"]
+            townID = loc_data["town"]
+            pageID = loc_data["page"]
+            categoryID = loc_data["category"]
+            page_companys = loc_data["data"]
+            if res == 0:
+                if len(page_companys) > 0:
+                    for name in page_companys:
+                        url = page_companys[name]["URL"]
+                        salesRevenue = page_companys[name]["Sales"]
+                        InsertData.append((name, url, salesRevenue, categoryID, townID, pageID))
+        elif TB_NAME == "Company":
+            com_data = Q.get(timeout= 1)
+            res = com_data["result"]
+            townID = com_data["town"]
+            pagecompanyID = com_data["pagecompany"]
+            categoryID = com_data["category"]
+            company = com_data["data"]
+            SalesRevenue = com_data["sales"]
+            if res == 0:
+                if len(company) > 0:
+                    Name = company["Name"]
+                    ShortName = company["Trade"]
+                    Addr = company["Address"]
+                    Locat = company["Location"]
+                    ComType = company["CompanyType"]
+                    Website = company["WebSite"]
+                    Phone = company["Phone"]
+                    # print ((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
+                    InsertData.append((Name, categoryID, townID, pagecompanyID, ShortName, SalesRevenue, ComType, Website, Addr, Phone))
+    INSERT(DB_NAME, TB_NAME, InsertData)
+    Q.close()
+    Q.join_thread()
+    for P in jobs:
+        P.kill()
+    return [], multiprocessing.Queue()
+
     
 if __name__ == "__main__":
     if len(sys.argv) > 1:
