@@ -94,13 +94,13 @@ if __name__ == "__main__":
     while True:
         total = 0
         parse = 0
-        for i in range(num_industry):
+        for i in range(5):
             IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
             category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
             numCategorys = len(category_datas)
             categorys = 0
             categroy_parse = 0
-            for idx, category_data in enumerate(category_datas):
+            for category_idx, category_data in enumerate(category_datas):
                 Q = multiprocessing.Queue()
                 jobs = []
                 CategoryID = category_data[0]
@@ -118,9 +118,9 @@ if __name__ == "__main__":
                     num_jobs = len(jobs)
                     if num_jobs >= limite:
                         categroy_parse += (num_page_datas - num_jobs)
-                        jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_page_datas)
+                        jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_page_datas)
                 categroy_parse += (num_page_datas - num_jobs)
-                jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_page_datas)
+                jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_page_datas)
             total += categorys
             parse += categroy_parse
         print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")

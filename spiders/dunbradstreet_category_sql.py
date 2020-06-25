@@ -110,7 +110,7 @@ if __name__ == "__main__":
     while True:
         total = 0
         parse = 0
-        for i in range(num_industry):
+        for i in range(5):
             # if len(sys.argv) > 1:
             #     i = int(sys.argv[1])
             # else:
@@ -125,7 +125,7 @@ if __name__ == "__main__":
             total += num_category
             Q = multiprocessing.Queue()
             jobs = []
-            for data in category_datas:
+            for idx, data in enumerate(category_datas):
                 region_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID,", [data[0],])
                 if (len(region_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
@@ -134,7 +134,7 @@ if __name__ == "__main__":
                     time.sleep(0.8)
             num_jobs = len(jobs)
             parse += (num_category - num_jobs)
-            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, jobs, Q, num_category)
+            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, idx, num_category, jobs, Q, num_category)
         print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
         if (parse / total) == 1 or it >= max_iter:
             break

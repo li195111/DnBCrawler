@@ -444,8 +444,8 @@ def json2sql(mode= None,jsonDir= 'Industrys', DB_NAME= 'test', host= 'localhost'
     return
     
 
-def do_jobs(DB_NAME, TB_NAME, i, jobs, Q, totals):
-    print (f"Industry {i+1}\t... Number to add:\t{len(jobs)*100/totals:.2f} % Parse Rate:\t{(totals - len(jobs))*100/totals:.2f} %")
+def do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, totals):
+    print (f"Industry {i+1}\t{category_idx+1:05d}/{numCategorys:05d} ... Number to add:\t{len(jobs)*100/(totals+1e-8):.2f} % Parse Rate:\t{(totals - len(jobs))*100/(totals+1e-8):.2f} %")
     for P in jobs:
         P.join(timeout= 1)
     InsertData = []
@@ -503,7 +503,7 @@ def do_jobs(DB_NAME, TB_NAME, i, jobs, Q, totals):
                 url = town
                 InsertData.append((townName, url, categoryID, townID))
         elif TB_NAME == "PageCompany":
-            loc_data = Q.get(timeout= 5)
+            loc_data = Q.get(timeout= 1)
             res = loc_data["result"]
             townID = loc_data["town"]
             pageID = loc_data["page"]
