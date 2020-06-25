@@ -117,7 +117,7 @@ if __name__ == "__main__":
             for loc_idx, location_data in enumerate(location_datas):
                 LocationID = location_data[0]
                 town_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, LocationID", [CategoryID, LocationID])
-                print (f"{location_data[1]:100s}:\t{(loc_idx+1)*100/num_loc_datas:.2f} %",end= '\r')
+                print (f"{location_data[1]:50s}:\t{(loc_idx+1)*100/num_loc_datas:.2f} %",end= '\r')
                 if (len(town_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([location_data,], Q))
                     P.start()

@@ -125,6 +125,7 @@ if __name__ == "__main__":
                 PageCompanyID = pagecompany_data[0]
                 TownID = pagecompany_data[-2]
                 company_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, TownID, PageCompanyID", [CategoryID, TownID, PageCompanyID])
+                print (f"{pagecompany_data[1]:50s}:\t{(page_idx+1)*100/num_pagecompany_datas:.2f} %",end= '\r')
                 if (len(company_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([pagecompany_data,], Q))
                     P.start()

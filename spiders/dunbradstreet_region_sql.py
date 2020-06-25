@@ -115,9 +115,10 @@ if __name__ == "__main__":
             region_datas = SelectItems(DB_NAME, "Region", "CategoryID,", [CategoryID,])
             num_reg_datas = len(region_datas)
             categorys += num_reg_datas
-            for region_data in region_datas:
+            for reg_idx, region_data in enumerate(region_datas):
                 RegionID = region_data[0]
                 location_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, RegionID", [CategoryID, RegionID])
+                print (f"{region_data[1]:50s}:\t{(reg_idx+1)*100/num_reg_datas:.2f} %",end= '\r')
                 if (len(location_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([region_data,], Q))
                     P.start()

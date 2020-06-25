@@ -125,6 +125,7 @@ if __name__ == "__main__":
             for town_idx, town_data in enumerate(town_datas):
                 TownID = town_data[0]
                 page_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, TownID", [CategoryID, TownID])
+                print (f"{town_data[1]:50s}:\t{(town_idx+1)*100/num_town_datas:.2f} %",end= '\r')
                 if (len(page_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([town_data,], Q))
                     P.start()
