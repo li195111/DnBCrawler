@@ -106,6 +106,7 @@ if __name__ == "__main__":
             CategoryID = category_data[0]
             page_datas = SelectItems(DB_NAME, "Page", "CategoryID,", [CategoryID,])
             num_page_datas = len(page_datas)
+            categorys += num_page_datas
             for page_idx, page_data in enumerate(page_datas):
                 PageID = page_data[0]
                 TownID = page_data[-1]
