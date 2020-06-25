@@ -86,7 +86,7 @@ if __name__ == "__main__":
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
     INIT_DB(DB_NAME)
     num_industry = len(ALL_INDUSTRY)
-    limite = 50
+    limite = 20
     max_iter = 10
     it = 1
     if len(sys.argv) > 1:
