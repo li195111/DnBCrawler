@@ -126,9 +126,9 @@ if __name__ == "__main__":
                     time.sleep(0.8)
                 num_jobs = len(jobs)
                 if num_jobs >= limite:
-                    categroy_parse += (num_reg_datas - num_jobs)
+                    categroy_parse += num_jobs
                     jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_reg_datas)
-            categroy_parse += (num_reg_datas - num_jobs)
+            categroy_parse += num_jobs
             jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_reg_datas)
         total += categorys
         parse += categroy_parse
