@@ -137,7 +137,7 @@ if __name__ == "__main__":
             jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_pagecompany_datas)
         total += categorys
         parse += categroy_parse
-        print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
+        print (f"{it:03d} Total:\t{parse * 100 / (total+1e-8):.2f} %")
         if (parse / total) == 1 or it >= max_iter:
             break
         it += 1
