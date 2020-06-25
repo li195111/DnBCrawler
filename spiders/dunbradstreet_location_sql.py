@@ -86,41 +86,49 @@ if __name__ == "__main__":
     ALL_INDUSTRY = os.listdir(INDUSTRY_DIR)
     INIT_DB(DB_NAME)
     num_industry = len(ALL_INDUSTRY)
-    limite = 20
+    limite = 50
     max_iter = 10
     it = 1
+    if len(sys.argv) > 1:
+        i = int(sys.argv[1])
+    else:
+        i = 3
+    # if len(sys.argv) > 2:
+    #     limite = int(sys.argv[2])
+    # else:
+    #     limite = 2
     while True:
         total = 0
         parse = 0
-        for i in range(5):
-            IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
-            category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
-            numCategorys = len(category_datas)
-            
-            categorys = 0
-            categroy_parse = 0
-            for category_idx, category_data in enumerate(category_datas):
-                Q = multiprocessing.Queue()
-                jobs = []
-                CategoryID = category_data[0]
-                location_datas = SelectItems(DB_NAME, "Location", "CategoryID,", [CategoryID,])
-                num_loc_datas = len(location_datas)
-                for loc_idx, location_data in enumerate(location_datas):
-                    LocationID = location_data[0]
-                    town_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, LocationID", [CategoryID, LocationID])
-                    if (len(town_datas) == 0):
-                        P = multiprocessing.Process(target= run_dunbrad_spider, args= ([location_data,], Q))
-                        P.start()
-                        jobs.append(P)
-                        time.sleep(0.7)
-                    num_jobs = len(jobs)
-                    if num_jobs >= limite:
-                        categroy_parse += (num_loc_datas - num_jobs)
-                        jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_loc_datas)
-                categroy_parse += (num_loc_datas - num_jobs)
-                jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_loc_datas)
-            total += categorys
-            parse += categroy_parse
+        # for i in range(5):
+        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+        numCategorys = len(category_datas)
+        
+        categorys = 0
+        categroy_parse = 0
+        for category_idx, category_data in enumerate(category_datas):
+            Q = multiprocessing.Queue()
+            jobs = []
+            CategoryID = category_data[0]
+            location_datas = SelectItems(DB_NAME, "Location", "CategoryID,", [CategoryID,])
+            num_loc_datas = len(location_datas)
+            for loc_idx, location_data in enumerate(location_datas):
+                LocationID = location_data[0]
+                town_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, LocationID", [CategoryID, LocationID])
+                if (len(town_datas) == 0):
+                    P = multiprocessing.Process(target= run_dunbrad_spider, args= ([location_data,], Q))
+                    P.start()
+                    jobs.append(P)
+                    time.sleep(0.7)
+                num_jobs = len(jobs)
+                if num_jobs >= limite:
+                    categroy_parse += (num_loc_datas - num_jobs)
+                    jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_loc_datas)
+            categroy_parse += (num_loc_datas - num_jobs)
+            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_loc_datas)
+        total += categorys
+        parse += categroy_parse
         print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
         if (parse / total) == 1 or it >= max_iter:
             break

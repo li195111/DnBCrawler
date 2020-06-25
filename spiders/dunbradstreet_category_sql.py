@@ -107,34 +107,34 @@ if __name__ == "__main__":
     num_industry = len(ALL_INDUSTRY)
     max_iter = 10
     it = 1
+    if len(sys.argv) > 1:
+        i = int(sys.argv[1])
+    else:
+        i = 2
+    # if len(sys.argv) > 2:
+    #     limite = int(sys.argv[2])
+    # else:
+    #     limite = 10
     while True:
         total = 0
         parse = 0
-        for i in range(5):
-            # if len(sys.argv) > 1:
-            #     i = int(sys.argv[1])
-            # else:
-            #     i = 2
-            # if len(sys.argv) > 2:
-            #     limite = int(sys.argv[2])
-            # else:
-            #     limite = 10
-            IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
-            category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
-            num_category = len(category_datas)
-            total += num_category
-            Q = multiprocessing.Queue()
-            jobs = []
-            for idx, data in enumerate(category_datas):
-                region_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID,", [data[0],])
-                if (len(region_datas) == 0):
-                    P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
-                    P.start()
-                    jobs.append(P)
-                    time.sleep(0.8)
-            num_jobs = len(jobs)
-            parse += (num_category - num_jobs)
-            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, idx, num_category, jobs, Q, num_category)
+        # for i in range(5):
+        IndustryID = GetItemID(DB_NAME, "Industry", [i+1])
+        category_datas = SelectItems(DB_NAME, "Category", "IndustryID,", [IndustryID,])
+        num_category = len(category_datas)
+        total += num_category
+        Q = multiprocessing.Queue()
+        jobs = []
+        for idx, data in enumerate(category_datas):
+            region_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID,", [data[0],])
+            if (len(region_datas) == 0):
+                P = multiprocessing.Process(target= run_dunbrad_spider, args= ([data,], Q))
+                P.start()
+                jobs.append(P)
+                time.sleep(0.8)
+        num_jobs = len(jobs)
+        parse += (num_category - num_jobs)
+        jobs, Q = do_jobs(DB_NAME, TB_NAME, i, idx, num_category, jobs, Q, num_category)
         print (f"{it:03d} Total:\t{parse * 100 / total:.2f} %")
         if (parse / total) == 1 or it >= max_iter:
             break
