@@ -6,7 +6,7 @@ import numpy as np
 import sqlite3
 import mysql.connector
 import multiprocessing
-
+from colorama import init
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -16,6 +16,8 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+init()
 
 WAIT_TIME = 0.5
 
