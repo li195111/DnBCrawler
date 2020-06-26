@@ -117,7 +117,7 @@ if __name__ == "__main__":
             for reg_idx, region_data in enumerate(region_datas):
                 RegionID = region_data[0]
                 location_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, RegionID", [CategoryID, RegionID])
-                print (f"{region_data[1]:50s}:\t{(reg_idx+1)*100/num_reg_datas:.2f} %",end= '\r')
+                print (f"{'Region':15s}:{region_data[1]:50s}:\t{(reg_idx+1)*100/num_reg_datas:.2f} %",end= '\r')
                 if (len(location_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([region_data,], Q))
                     P.start()
@@ -126,9 +126,9 @@ if __name__ == "__main__":
                 num_jobs = len(jobs)
                 if num_jobs >= limite:
                     categroy_parse += num_jobs
-                    jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_reg_datas)
+                    jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, reg_idx, num_reg_datas)
             categroy_parse += num_jobs
-            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_reg_datas)
+            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, reg_idx, num_reg_datas)
         total += categorys
         parse += (categorys - categroy_parse)
         print (f"{it:03d} Total:\t{parse / (total+1e-8):.2f} %")

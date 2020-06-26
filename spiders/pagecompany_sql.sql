@@ -1,0 +1,2 @@
+select * from test.pagecompany;
+SELECT test.category.IndustryID, test.category.ID, test.category.Name, count(*) FROM test.category, test.pagecompany where test.category.ID = test.pagecompany.CategoryID group by test.pagecompany.CategoryID;

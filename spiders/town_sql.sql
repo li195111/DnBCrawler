@@ -1,0 +1,2 @@
+SELECT * FROM test.town;
+SELECT test.category.IndustryID, test.category.ID, test.category.Name, count(*) FROM test.category, test.town where test.category.ID = test.town.CategoryID group by test.town.CategoryID;

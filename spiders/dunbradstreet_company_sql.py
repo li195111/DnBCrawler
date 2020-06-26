@@ -124,7 +124,7 @@ if __name__ == "__main__":
                 PageCompanyID = pagecompany_data[0]
                 TownID = pagecompany_data[-2]
                 company_datas = SelectItems(DB_NAME, TB_NAME, "CategoryID, TownID, PageCompanyID", [CategoryID, TownID, PageCompanyID])
-                print (f"{pagecompany_data[1]:50s}:\t{(page_idx+1)*100/num_pagecompany_datas:.2f} %",end= '\r')
+                print (f"{'PageCompany':15s}:{pagecompany_data[1]:50s}:\t{(page_idx+1)*100/num_pagecompany_datas:.2f} %",end= '\r')
                 if (len(company_datas) == 0):
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([pagecompany_data,], Q))
                     P.start()
@@ -133,9 +133,9 @@ if __name__ == "__main__":
                 num_jobs = len(jobs)
                 if num_jobs >= limite:
                     categroy_parse += num_jobs
-                    jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_pagecompany_datas)
+                    jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, page_idx, num_pagecompany_datas)
             categroy_parse += num_jobs
-            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, num_pagecompany_datas)
+            jobs, Q = do_jobs(DB_NAME, TB_NAME, i, category_idx, numCategorys, jobs, Q, page_idx, num_pagecompany_datas)
         total += categorys
         parse += (categorys - categroy_parse)
         print (f"{it:03d} Total:\t{parse * 100 / (total+1e-8):.2f} %")
