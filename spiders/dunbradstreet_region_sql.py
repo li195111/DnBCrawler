@@ -132,6 +132,6 @@ if __name__ == "__main__":
         total += categorys
         parse += (categorys - categroy_parse)
         print (f"{it:03d} Total:\t{parse / (total+1e-8):.2f} %")
-        if round(parse / (total+1e-8),0) == 1 or it >= max_iter:
+        if round(parse / (total+1e-8),0) >= 0.95 or it >= max_iter:
             break
         it += 1
