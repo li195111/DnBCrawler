@@ -98,11 +98,10 @@ if __name__ == "__main__":
         i = int(sys.argv[1])
     else:
         i = 0
-    # if len(sys.argv) > 2:
-    #     limite = int(sys.argv[2])
-    # else:
-    #     limite = 10
-    limite = 20
+    if len(sys.argv) > 2:
+        limite = int(sys.argv[2])
+    else:
+        limite = 20
     max_iter = 10
     it = 1
     while True:

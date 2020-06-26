@@ -111,10 +111,6 @@ if __name__ == "__main__":
         i = int(sys.argv[1])
     else:
         i = 2
-    # if len(sys.argv) > 2:
-    #     limite = int(sys.argv[2])
-    # else:
-    #     limite = 10
     while True:
         total = 0
         parse = 0
