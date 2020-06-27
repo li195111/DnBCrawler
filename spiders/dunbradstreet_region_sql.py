@@ -122,7 +122,7 @@ if __name__ == "__main__":
                     P = multiprocessing.Process(target= run_dunbrad_spider, args= ([region_data,], Q))
                     P.start()
                     jobs.append(P)
-                    time.sleep(0.8)
+                    time.sleep(1.0)
                 num_jobs = len(jobs)
                 if num_jobs >= limite:
                     categroy_parse += num_jobs
